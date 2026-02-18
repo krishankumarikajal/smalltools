@@ -4,7 +4,7 @@ A collection of free, fast, browser-based utility tools. No login, no ads, no da
 
 ## Live Site
 
-[https://toolopia.github.io/smalltools](https://toolopia.github.io/smalltools)
+[https://krishankumarikajal.github.io/smalltools](https://krishankumarikajal.github.io/smalltools)
 
 ## Tools Available
 
