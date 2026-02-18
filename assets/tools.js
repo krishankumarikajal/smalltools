@@ -42,4 +42,6 @@ const TOOLS = [
   { id: "markdown-to-word",   cat: "office", icon: "📝", name: "Markdown to Word",         desc: "Convert Markdown to a styled doc preview. Export as .doc.",    url: "tools/office/markdown-to-word.html" },
   { id: "presentation-outline", cat: "office", icon: "📊", name: "Presentation Outline",  desc: "Plan presentation slides with titles and notes. Export HTML.", url: "tools/office/presentation-outline.html" },
   { id: "pdf-metadata",       cat: "office", icon: "📄", name: "PDF Metadata Viewer",      desc: "View file info, page count, and extract text from PDFs.",      url: "tools/office/pdf-metadata.html" },
+  { id: "spreadsheet",        cat: "office", icon: "🧮", name: "CSV Formula Editor",         desc: "Upload CSV/Excel and transform data with plain-English commands.", url: "tools/office/spreadsheet.html" },
+  { id: "csv-merger",         cat: "office", icon: "🔀", name: "CSV Merger & Deduplicator",  desc: "Merge 2+ CSV/Excel files into one and remove duplicates smartly.", url: "tools/office/csv-merger.html" },
 ];

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Merger & Deduplicator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .file-drop-zone{border:2px dashed var(--border);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface-2,var(--surface));margin-bottom:10px}
+    .file-drop-zone:hover,.file-drop-zone.over{border-color:var(--primary);background:var(--primary-light,#eff6ff)}
+    .file-card{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+    .file-card-info{flex:1;min-width:0}
+    .file-card-name{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .file-card-meta{font-size:11px;color:var(--text-2);margin-top:2px}
+    .file-card-remove{background:none;border:none;cursor:pointer;color:var(--text-2);font-size:16px;padding:2px 6px;border-radius:4px;transition:all .15s}
+    .file-card-remove:hover{background:#fee2e2;color:#dc2626}
+    .col-tag{display:inline-block;background:var(--surface-2,var(--bg));border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;margin:2px;cursor:pointer;transition:all .15s;user-select:none}
+    .col-tag.selected{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .preview-table-wrap{overflow:auto;max-height:200px;border:1.5px solid var(--border);border-radius:8px}
+    .preview-table{border-collapse:collapse;font-size:12px;width:100%;min-width:max-content}
+    .preview-table th{background:var(--surface-2,var(--surface));border:1px solid var(--border);padding:5px 10px;text-align:left;font-weight:700;white-space:nowrap;position:sticky;top:0}
+    .preview-table td{border:1px solid var(--border);padding:4px 10px;white-space:nowrap}
+    .preview-table tr:nth-child(even) td{background:var(--surface-2,var(--bg))}
+    .dup-badge{display:inline-block;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600}
+    .merge-badge{display:inline-block;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600}
+    .stat-box{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+    .stat-num{font-size:26px;font-weight:800;color:var(--primary)}
+    .stat-label{font-size:11px;color:var(--text-2);margin-top:2px}
+    .progress-bar-wrap{background:var(--border);border-radius:4px;height:6px;overflow:hidden;margin-top:6px}
+    .progress-bar{height:100%;background:var(--primary);transition:width .3s}
+    .section-title{font-size:13px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px}
+    .result-row-dup td{background:#fff7f7 !important;color:#9b2c2c}
+    [data-theme="dark"] .result-row-dup td{background:#3f1111 !important;color:#fca5a5}
+    .tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px}
+    .tab-btn{padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+    .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+    .tab-pane{display:none}
+    .tab-pane.active{display:block}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page" style="max-width:1000px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / CSV Merger</div>
+    <div class="tool-header">
+      <h1>🔀 CSV Merger & Deduplicator</h1>
+      <p>Upload 2 or more CSV / Excel files, merge them into one, and remove duplicates with smart matching.</p>
+    </div>
+
+    <div class="card" id="uploadSection">
+      <div class="section-title">Step 1 — Upload Files</div>
+      <div class="file-drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+        <div style="font-size:28px;margin-bottom:6px">📂</div>
+        <div style="font-weight:600;margin-bottom:4px">Drop CSV / Excel files here or click to browse</div>
+        <div style="font-size:12px;color:var(--text-2)">Supports .csv, .tsv, .xlsx, .xls — processed locally, never uploaded</div>
+        <input type="file" id="fileInput" accept=".csv,.tsv,.xlsx,.xls" multiple style="display:none" onchange="handleFiles(this.files)">
+      </div>
+      <div id="fileList"></div>
+      <div id="uploadError" style="color:#dc2626;font-size:13px"></div>
+    </div>
+
+    <div class="card" id="configSection" style="display:none">
+      <div class="section-title">Step 2 — Configure Merge</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <label>Duplicate Detection Keys</label>
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">Select columns to identify duplicate rows. Leave empty to compare all columns.</div>
+          <div id="keyColTags"></div>
+        </div>
+        <div>
+          <label>Options</label>
+          <div class="form-row" style="margin:0 0 8px 0">
+            <label style="font-size:13px;font-weight:400">On duplicate, keep:</label>
+            <select id="dupKeep">
+              <option value="first">First occurrence</option>
+              <option value="last">Last occurrence</option>
+              <option value="all">All (no deduplication)</option>
+            </select>
+          </div>
+          <div class="form-row" style="margin:0 0 8px 0">
+            <label style="font-size:13px;font-weight:400">String matching:</label>
+            <select id="matchMode">
+              <option value="exact">Exact (case-sensitive)</option>
+              <option value="icase">Case-insensitive</option>
+              <option value="fuzzy">Fuzzy (trim + normalize spaces)</option>
+            </select>
+          </div>
+          <label class="check-label"><input type="checkbox" id="skipEmpty" checked> Skip completely empty rows</label>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <button class="btn btn-primary" onclick="doMerge()">Merge & Deduplicate</button>
+        <button class="btn btn-ghost" onclick="resetAll()" style="margin-left:6px">Reset</button>
+      </div>
+    </div>
+
+    <div id="resultSection" style="display:none">
+      <div class="card">
+        <div class="section-title">Step 3 — Results</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+          <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Total Rows Input</div></div>
+          <div class="stat-box"><div class="stat-num" id="statDups">0</div><div class="stat-label">Duplicates Removed</div></div>
+          <div class="stat-box"><div class="stat-num" id="statKept">0</div><div class="stat-label">Rows Kept</div></div>
+          <div class="stat-box"><div class="stat-num" id="statCols">0</div><div class="stat-label">Columns</div></div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('preview',this)">Preview</button>
+          <button class="tab-btn" onclick="switchTab('dups',this)">Removed Duplicates</button>
+          <button class="tab-btn" onclick="switchTab('colmap',this)">Column Map</button>
+        </div>
+
+        <div id="tab-preview" class="tab-pane active">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:13px;color:var(--text-2)">Showing first 200 rows of merged result</div>
+            <div style="display:flex;gap:6px">
+              <input type="text" id="resultSearch" placeholder="Search rows..." style="width:180px;font-size:12px" oninput="renderPreview()">
+              <button class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
+              <button class="btn btn-ghost" onclick="copyCSV()">Copy CSV</button>
+            </div>
+          </div>
+          <div class="preview-table-wrap" id="previewTableWrap"></div>
+        </div>
+
+        <div id="tab-dups" class="tab-pane">
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:8px">Rows that were removed as duplicates</div>
+          <div class="preview-table-wrap" id="dupsTableWrap"></div>
+          <div id="noDups" style="text-align:center;padding:30px;color:var(--text-2);font-size:13px;display:none">No duplicates were found.</div>
+        </div>
+
+        <div id="tab-colmap" class="tab-pane">
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:8px">How columns from each file map to the merged output</div>
+          <div id="colMapContent"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+    let uploadedFiles = [];      // {name, rows, headers}
+    let mergedHeaders = [];
+    let mergedRows = [];
+    let removedDups = [];
+
+    // ─── Drag & Drop ──────────────────────────────────────────────────────────
+    function onDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
+    function onDragLeave() { document.getElementById('dropZone').classList.remove('over'); }
+    function onDrop(e) { e.preventDefault(); onDragLeave(); handleFiles(e.dataTransfer.files); }
+
+    // ─── File Handling ────────────────────────────────────────────────────────
+    function handleFiles(fileList) {
+      Array.from(fileList).forEach(f => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (!['csv','tsv','xlsx','xls'].includes(ext)) {
+          showErr(f.name + ': unsupported format'); return;
+        }
+        const reader = new FileReader();
+        if (ext === 'csv' || ext === 'tsv') {
+          reader.onload = e => addFile(f.name, parseCSV(e.target.result, ext === 'tsv' ? '\t' : null));
+          reader.readAsText(f);
+        } else {
+          reader.onload = e => addFile(f.name, parseXLSX(new Uint8Array(e.target.result)));
+          reader.readAsArrayBuffer(f);
+        }
+      });
+    }
+
+    function addFile(name, parsed) {
+      if (!parsed || !parsed.headers.length) { showErr(name + ': could not parse file'); return; }
+      // Avoid duplicate file names
+      if (uploadedFiles.find(f => f.name === name)) {
+        const base = name.replace(/\.[^.]+$/, ''), ext = name.split('.').pop();
+        name = base + '_' + (uploadedFiles.length + 1) + '.' + ext;
+      }
+      uploadedFiles.push({name, headers: parsed.headers, rows: parsed.rows});
+      renderFileList();
+      if (uploadedFiles.length >= 2) showConfig();
+    }
+
+    function removeFile(idx) {
+      uploadedFiles.splice(idx, 1);
+      renderFileList();
+      if (uploadedFiles.length < 2) {
+        document.getElementById('configSection').style.display = 'none';
+        document.getElementById('resultSection').style.display = 'none';
+      } else {
+        showConfig();
+      }
+    }
+
+    function renderFileList() {
+      const el = document.getElementById('fileList');
+      if (!uploadedFiles.length) { el.innerHTML = ''; return; }
+      el.innerHTML = uploadedFiles.map((f, i) => `
+        <div class="file-card">
+          <div style="font-size:22px">${f.name.endsWith('.csv')||f.name.endsWith('.tsv') ? '📄' : '📊'}</div>
+          <div class="file-card-info">
+            <div class="file-card-name">${esc(f.name)}</div>
+            <div class="file-card-meta">${f.rows.length} rows &middot; ${f.headers.length} columns: ${f.headers.slice(0,5).map(h=>esc(h)).join(', ')}${f.headers.length>5?' …':''}</div>
+            <div class="preview-table-wrap" style="margin-top:8px;max-height:120px">${buildTable(f.headers, f.rows.slice(0,5))}</div>
+          </div>
+          <button class="file-card-remove" onclick="removeFile(${i})" title="Remove file">×</button>
+        </div>`).join('');
+    }
+
+    function showConfig() {
+      document.getElementById('configSection').style.display = '';
+      // Build common columns for key selection
+      const allCols = [...new Set(uploadedFiles.flatMap(f => f.headers))];
+      const commonCols = allCols.filter(c => uploadedFiles.every(f => f.headers.includes(c)));
+      const el = document.getElementById('keyColTags');
+      el.innerHTML = allCols.map(c => {
+        const isCommon = commonCols.includes(c);
+        return `<span class="col-tag${isCommon ? ' selected' : ''}" onclick="toggleKey(this)" data-col="${esc(c)}">${esc(c)}${isCommon ? '' : ' <small style="opacity:.5">(partial)</small>'}</span>`;
+      }).join('');
+    }
+
+    function toggleKey(el) { el.classList.toggle('selected'); }
+
+    function showErr(msg) {
+      const el = document.getElementById('uploadError');
+      el.textContent = msg;
+      setTimeout(() => el.textContent = '', 4000);
+    }
+
+    // ─── CSV Parser ───────────────────────────────────────────────────────────
+    function parseCSV(text, delimOverride) {
+      const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+      if (!lines.length) return null;
+
+      // Auto-detect delimiter
+      let delim = delimOverride;
+      if (!delim) {
+        const sample = lines[0];
+        const counts = {',': (sample.match(/,/g)||[]).length, '\t': (sample.match(/\t/g)||[]).length, ';': (sample.match(/;/g)||[]).length, '|': (sample.match(/\|/g)||[]).length};
+        delim = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+      }
+
+      const parseLine = line => {
+        const cells = []; let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (ch === '"') {
+            if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+            else inQ = !inQ;
+          } else if (ch === delim && !inQ) {
+            cells.push(cur.trim()); cur = '';
+          } else cur += ch;
+        }
+        cells.push(cur.trim());
+        return cells;
+      };
+
+      const nonEmpty = lines.filter(l => l.trim());
+      if (!nonEmpty.length) return null;
+      const headers = parseLine(nonEmpty[0]);
+      const rows = nonEmpty.slice(1).map(l => parseLine(l));
+      return {headers, rows};
+    }
+
+    // ─── XLSX Parser (pure JS, no library) ───────────────────────────────────
+    function parseXLSX(bytes) {
+      try {
+        const zip = readZipEntries(bytes);
+        const sharedStringsEntry = zip['xl/sharedStrings.xml'];
+        const sheetEntry = zip['xl/worksheets/sheet1.xml'] || zip[Object.keys(zip).find(k => k.startsWith('xl/worksheets/sheet'))];
+        if (!sheetEntry) return null;
+
+        const sharedStrings = [];
+        if (sharedStringsEntry) {
+          const xml = new TextDecoder().decode(sharedStringsEntry);
+          const re = /<si>[\s\S]*?<\/si>/g;
+          let m;
+          while ((m = re.exec(xml)) !== null) {
+            const tMatch = m[0].match(/<t[^>]*>([\s\S]*?)<\/t>/g);
+            if (tMatch) sharedStrings.push(tMatch.map(t => t.replace(/<[^>]+>/g,'')).join(''));
+            else sharedStrings.push('');
+          }
+        }
+
+        const sheetXml = new TextDecoder().decode(sheetEntry);
+        const rowMatches = sheetXml.match(/<row[^>]*>[\s\S]*?<\/row>/g) || [];
+        const matrix = rowMatches.map(rowXml => {
+          const cells = [];
+          const cRe = /<c\s([^>]*)>([\s\S]*?)<\/c>/g;
+          let cm;
+          while ((cm = cRe.exec(rowXml)) !== null) {
+            const attrs = cm[1], inner = cm[2];
+            const rAttr = attrs.match(/r="([A-Z]+)\d+"/);
+            const tAttr = attrs.match(/t="([^"]+)"/);
+            const vMatch = inner.match(/<v>([\s\S]*?)<\/v>/);
+            let val = '';
+            if (vMatch) {
+              val = vMatch[1];
+              if (tAttr && tAttr[1] === 's') val = sharedStrings[parseInt(val)] || '';
+              else if (tAttr && tAttr[1] === 'inlineStr') {
+                const it = inner.match(/<t>([\s\S]*?)<\/t>/);
+                val = it ? it[1] : val;
+              }
+            }
+            const colIdx = rAttr ? colLetterToIdx(rAttr[1]) : cells.length;
+            while (cells.length <= colIdx) cells.push('');
+            cells[colIdx] = val;
+          }
+          return cells;
+        });
+
+        if (!matrix.length) return null;
+        return {headers: matrix[0], rows: matrix.slice(1)};
+      } catch(e) { return null; }
+    }
+
+    function colLetterToIdx(s) {
+      let n = 0;
+      for (let i = 0; i < s.length; i++) n = n * 26 + s.charCodeAt(i) - 64;
+      return n - 1;
+    }
+
+    function readZipEntries(bytes) {
+      const entries = {};
+      let i = 0;
+      while (i < bytes.length - 4) {
+        if (bytes[i]===0x50 && bytes[i+1]===0x4b && bytes[i+2]===0x03 && bytes[i+3]===0x04) {
+          const method = bytes[i+8] | (bytes[i+9]<<8);
+          const compSize = bytes[i+18] | (bytes[i+19]<<8) | (bytes[i+20]<<16) | (bytes[i+21]<<24);
+          const uncompSize = bytes[i+22] | (bytes[i+23]<<8) | (bytes[i+24]<<16) | (bytes[i+25]<<24);
+          const fnLen = bytes[i+26] | (bytes[i+27]<<8);
+          const extraLen = bytes[i+28] | (bytes[i+29]<<8);
+          const fnBytes = bytes.slice(i+30, i+30+fnLen);
+          const fn = new TextDecoder().decode(fnBytes);
+          const dataStart = i + 30 + fnLen + extraLen;
+          if (method === 0) {
+            entries[fn] = bytes.slice(dataStart, dataStart + uncompSize);
+          }
+          i = dataStart + compSize;
+        } else i++;
+      }
+      return entries;
+    }
+
+    // ─── Merge & Dedup Engine ─────────────────────────────────────────────────
+    function doMerge() {
+      if (uploadedFiles.length < 2) return;
+
+      const keepMode = document.getElementById('dupKeep').value;
+      const matchMode = document.getElementById('matchMode').value;
+      const skipEmpty = document.getElementById('skipEmpty').checked;
+
+      // Collect key columns
+      const keyTags = document.querySelectorAll('.col-tag.selected');
+      const keyCols = Array.from(keyTags).map(t => t.dataset.col).filter(Boolean);
+
+      // Build unified headers (union of all file headers, preserving order)
+      const allHeaders = [];
+      const seen = new Set();
+      uploadedFiles.forEach(f => {
+        f.headers.forEach(h => {
+          if (!seen.has(h)) { allHeaders.push(h); seen.add(h); }
+        });
+      });
+      mergedHeaders = allHeaders;
+
+      // Collect all rows, tagged with source
+      let allRows = [];
+      uploadedFiles.forEach(f => {
+        f.rows.forEach(r => {
+          // Map to unified header space
+          const mapped = allHeaders.map(h => {
+            const idx = f.headers.indexOf(h);
+            return idx >= 0 ? (r[idx] !== undefined ? r[idx] : '') : '';
+          });
+          if (skipEmpty && mapped.every(v => v.toString().trim() === '')) return;
+          allRows.push(mapped);
+        });
+      });
+
+      const totalInput = allRows.length;
+
+      if (keepMode === 'all') {
+        mergedRows = allRows;
+        removedDups = [];
+      } else {
+        // Determine key indices
+        const keyIndices = keyCols.length > 0
+          ? keyCols.map(c => allHeaders.indexOf(c)).filter(i => i >= 0)
+          : allHeaders.map((_, i) => i);
+
+        const normalize = (v, mode) => {
+          let s = String(v).trim();
+          if (mode === 'fuzzy') s = s.replace(/\s+/g,' ').toLowerCase();
+          else if (mode === 'icase') s = s.toLowerCase();
+          return s;
+        };
+
+        const getKey = (row, mode) => keyIndices.map(i => normalize(row[i] || '', mode)).join('\u0000');
+
+        const seenKeys = new Map(); // key -> index in mergedRows
+        mergedRows = [];
+        removedDups = [];
+
+        if (keepMode === 'first') {
+          allRows.forEach(row => {
+            const k = getKey(row, matchMode);
+            if (!seenKeys.has(k)) {
+              seenKeys.set(k, mergedRows.length);
+              mergedRows.push(row);
+            } else {
+              removedDups.push(row);
+            }
+          });
+        } else if (keepMode === 'last') {
+          // Reverse pass: keep last by processing and overwriting
+          const keyToRow = new Map();
+          const keyOrder = [];
+          allRows.forEach(row => {
+            const k = getKey(row, matchMode);
+            if (!keyToRow.has(k)) keyOrder.push(k);
+            keyToRow.set(k, row);
+          });
+          // Find removed: first occurrences of keys that were overwritten
+          const usedKeys = new Set();
+          allRows.forEach(row => {
+            const k = getKey(row, matchMode);
+            if (usedKeys.has(k)) removedDups.push(row);
+            else usedKeys.add(k);
+          });
+          // Actually removedDups for "last" = all but last occurrence
+          removedDups = [];
+          const lastSeen = new Map();
+          for (let i = allRows.length - 1; i >= 0; i--) {
+            const k = getKey(allRows[i], matchMode);
+            if (!lastSeen.has(k)) lastSeen.set(k, i);
+          }
+          allRows.forEach((row, i) => {
+            const k = getKey(row, matchMode);
+            if (lastSeen.get(k) === i) mergedRows.push(row);
+            else removedDups.push(row);
+          });
+        }
+      }
+
+      // Stats
+      document.getElementById('statTotal').textContent = totalInput;
+      document.getElementById('statDups').textContent = removedDups.length;
+      document.getElementById('statKept').textContent = mergedRows.length;
+      document.getElementById('statCols').textContent = allHeaders.length;
+
+      // Column map
+      buildColMap();
+
+      // Show result
+      document.getElementById('resultSection').style.display = '';
+      renderPreview();
+      renderDups();
+      switchTab('preview', document.querySelector('.tab-btn'));
+    }
+
+    function renderPreview() {
+      const query = (document.getElementById('resultSearch').value || '').toLowerCase();
+      let rows = mergedRows;
+      if (query) rows = rows.filter(r => r.some(v => String(v).toLowerCase().includes(query)));
+      const limited = rows.slice(0, 200);
+      document.getElementById('previewTableWrap').innerHTML = buildTable(mergedHeaders, limited);
+    }
+
+    function renderDups() {
+      const wrap = document.getElementById('dupsTableWrap');
+      const noDups = document.getElementById('noDups');
+      if (!removedDups.length) {
+        wrap.style.display = 'none'; noDups.style.display = '';
+      } else {
+        wrap.style.display = ''; noDups.style.display = 'none';
+        wrap.innerHTML = buildTable(mergedHeaders, removedDups.slice(0, 200), 'result-row-dup');
+      }
+    }
+
+    function buildColMap() {
+      const el = document.getElementById('colMapContent');
+      const rows = mergedHeaders.map(h => {
+        const sources = uploadedFiles.filter(f => f.headers.includes(h)).map(f => `<span class="merge-badge">${esc(f.name)}</span>`).join(' ');
+        const missing = uploadedFiles.filter(f => !f.headers.includes(h)).map(f => `<span class="dup-badge">${esc(f.name)}</span>`).join(' ');
+        return `<tr><td style="font-weight:600">${esc(h)}</td><td>${sources}</td><td>${missing || '<span style="color:var(--text-2);font-size:12px">—</span>'}</td></tr>`;
+      }).join('');
+      el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="border-bottom:2px solid var(--border)"><th style="padding:6px 10px;text-align:left">Column</th><th style="padding:6px 10px;text-align:left">Present in</th><th style="padding:6px 10px;text-align:left">Missing from</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    }
+
+    // ─── Table Renderer ───────────────────────────────────────────────────────
+    function buildTable(headers, rows, rowClass) {
+      if (!headers.length) return '<div style="padding:20px;text-align:center;color:var(--text-2)">No data</div>';
+      let html = '<table class="preview-table"><thead><tr>' + headers.map(h => `<th>${esc(h)}</th>`).join('') + '</tr></thead><tbody>';
+      rows.forEach(r => {
+        html += `<tr${rowClass ? ` class="${rowClass}"` : ''}>` + headers.map((_, i) => `<td>${esc(r[i] !== undefined ? r[i] : '')}</td>`).join('') + '</tr>';
+      });
+      html += '</tbody></table>';
+      return html;
+    }
+
+    // ─── Export ───────────────────────────────────────────────────────────────
+    function rowsToCsv(headers, rows) {
+      const q = v => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g,'""') + '"' : s; };
+      return [headers.map(q).join(','), ...rows.map(r => headers.map((_, i) => q(r[i] !== undefined ? r[i] : '')).join(','))].join('\n');
+    }
+
+    function downloadCSV() {
+      const csv = rowsToCsv(mergedHeaders, mergedRows);
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'merged.csv'; a.click();
+    }
+
+    function copyCSV() {
+      const csv = rowsToCsv(mergedHeaders, mergedRows);
+      const btn = document.querySelector('[onclick="copyCSV()"]');
+      copyText(csv, btn);
+    }
+
+    // ─── Tabs ─────────────────────────────────────────────────────────────────
+    function switchTab(id, btn) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
+      if (btn) btn.classList.add('active');
+    }
+
+    function resetAll() {
+      uploadedFiles = []; mergedHeaders = []; mergedRows = []; removedDups = [];
+      document.getElementById('fileList').innerHTML = '';
+      document.getElementById('configSection').style.display = 'none';
+      document.getElementById('resultSection').style.display = 'none';
+      document.getElementById('uploadError').textContent = '';
+      document.getElementById('fileInput').value = '';
+    }
+
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  </script>
+</body>
+</html>

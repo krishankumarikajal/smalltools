@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Formula Editor — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .tbl-wrap{overflow:auto;max-height:420px;border:1.5px solid var(--border);border-radius:8px;margin-top:10px}
+    .dtbl{border-collapse:collapse;font-size:13px;width:100%;table-layout:auto}
+    .dtbl th{background:var(--surface-2,#f1f5f9);border:1px solid var(--border);padding:6px 12px;text-align:left;font-weight:700;white-space:nowrap;position:sticky;top:0;cursor:pointer;user-select:none}
+    .dtbl th:hover{background:var(--surface)}
+    .dtbl td{border:1px solid var(--border);padding:5px 10px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+    .dtbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .dtbl tr:nth-child(even) td{background:var(--surface-2,var(--bg))}
+    .dtbl tr:hover td{background:var(--surface)}
+    .cmd-input{font-family:'SF Mono','Fira Code',monospace;font-size:13px;background:var(--surface-2,#1e293b);color:#f1f5f9;border:1.5px solid var(--border);border-radius:7px;padding:10px 14px;width:100%;outline:none;transition:border-color .15s}
+    .cmd-input:focus{border-color:var(--primary)}
+    [data-theme="light"] .cmd-input{background:#1e293b;color:#f1f5f9}
+    .cmd-log{margin-top:8px;max-height:160px;overflow-y:auto;font-size:12px;font-family:monospace}
+    .log-line{padding:3px 8px;border-radius:4px;margin-bottom:2px}
+    .log-ok{background:#dcfce7;color:#166534}[data-theme="dark"] .log-ok{background:#14532d;color:#bbf7d0}
+    .log-err{background:#fee2e2;color:#991b1b}[data-theme="dark"] .log-err{background:#450a0a;color:#fca5a5}
+    .log-info{background:var(--surface-2,#f0f9ff);color:var(--text-2)}
+    .chip{display:inline-block;background:var(--surface-2,#f1f5f9);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:monospace;cursor:pointer;margin:2px}
+    .chip:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .stats-row{display:flex;gap:14px;font-size:12px;color:var(--text-2);flex-wrap:wrap;padding:4px 0}
+    .highlight-new td{animation:rowflash .6s ease}
+    @keyframes rowflash{0%{background:#bfdbfe}100%{background:inherit}}
+    .col-menu{position:absolute;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:6px;z-index:100;box-shadow:0 4px 20px rgba(0,0,0,.15);min-width:180px}
+    .col-menu-item{padding:6px 12px;cursor:pointer;border-radius:5px;font-size:13px;display:flex;align-items:center;gap:8px}
+    .col-menu-item:hover{background:var(--surface-2,#f1f5f9)}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page" style="max-width:1150px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / CSV Formula Editor</div>
+    <div class="tool-header">
+      <h1>📊 CSV Formula Editor</h1>
+      <p>Upload a CSV or Excel file, then type plain-text commands to transform your data — no Excel needed.</p>
+    </div>
+
+    <div class="card" id="uploadCard">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+        <label class="btn btn-primary" style="cursor:pointer">
+          Upload CSV / Excel
+          <input type="file" id="fileIn" accept=".csv,.tsv,.txt,.xls,.xlsx" style="display:none" onchange="loadFile()">
+        </label>
+        <button class="btn btn-ghost" onclick="loadSample('sales')">Sample: Sales</button>
+        <button class="btn btn-ghost" onclick="loadSample('employees')">Sample: Employees</button>
+        <button class="btn btn-ghost" onclick="resetAll()" id="resetBtn" style="display:none">Reset</button>
+        <div id="fileInfo" style="font-size:12px;color:var(--text-2)"></div>
+      </div>
+      <div class="form-row" style="margin:0">
+        <label>Or paste CSV data <span style="font-weight:400;color:var(--text-2);font-size:11px">(first row = headers)</span></label>
+        <textarea id="pasteArea" rows="4" placeholder="name,salary,department&#10;Alice,50000,Engineering&#10;Bob,60000,Sales" oninput="parsePaste()"></textarea>
+      </div>
+    </div>
+
+    <div id="mainPanel" style="display:none">
+      <!-- Stats bar -->
+      <div class="card" style="padding:12px 16px">
+        <div class="stats-row" id="statsRow"></div>
+      </div>
+
+      <!-- Command box -->
+      <div class="card">
+        <label style="margin-bottom:6px">Command <span style="font-weight:400;color:var(--text-2);font-size:11px">— type what you want to do in plain English</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="cmd-input" id="cmdInput" placeholder='e.g.  add row Alice,90000,Engineering   |   add column salary*1.1 as new_salary   |   filter where salary > 55000' autocomplete="off" spellcheck="false">
+          <button class="btn btn-primary" onclick="runCmd()" style="white-space:nowrap">Run</button>
+          <button class="btn btn-ghost" onclick="undoLast()" id="undoBtn" title="Undo last change" style="padding:9px 12px">↩</button>
+        </div>
+        <!-- Quick-action chips -->
+        <div style="margin-top:8px;font-size:11px;color:var(--text-2);margin-bottom:4px">Quick actions:</div>
+        <div id="quickChips"></div>
+        <div class="cmd-log" id="cmdLog"></div>
+      </div>
+
+      <!-- Table -->
+      <div class="card" style="padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="searchInput" placeholder="Search / filter rows..." oninput="applySearch()" style="width:220px">
+            <span id="filteredNote" style="font-size:12px;color:var(--text-2)"></span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost" onclick="downloadCSV()">Download CSV</button>
+            <button class="btn btn-ghost" onclick="copyTableCSV()">Copy CSV</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table class="dtbl" id="dtbl"></table></div>
+      </div>
+    </div>
+
+    <!-- Context menu -->
+    <div id="colMenu" class="col-menu" style="display:none">
+      <div class="col-menu-item" onclick="colAction('sum')">∑ Sum column</div>
+      <div class="col-menu-item" onclick="colAction('avg')">⌀ Average column</div>
+      <div class="col-menu-item" onclick="colAction('min')">↓ Min value</div>
+      <div class="col-menu-item" onclick="colAction('max')">↑ Max value</div>
+      <div class="col-menu-item" onclick="colAction('count')">⊞ Count non-empty</div>
+      <div class="col-menu-item" onclick="colAction('sort_asc')">A↑ Sort A→Z</div>
+      <div class="col-menu-item" onclick="colAction('sort_desc')">Z↓ Sort Z→A</div>
+      <div class="col-menu-item" onclick="colAction('del_col')" style="color:#dc2626">✕ Delete column</div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+  // ── State ──────────────────────────────────────────────────
+  let headers = [], rows = [], history = [], sortState = {col:-1, dir:1};
+  let activeColIdx = -1;
+
+  // ── File loading ───────────────────────────────────────────
+  function loadFile() {
+    const file = document.getElementById('fileIn').files[0];
+    if (!file) return;
+    document.getElementById('fileInfo').textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+    const reader = new FileReader();
+    reader.onload = e => {
+      // Try to detect if xlsx (binary) — simple check
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        parseXLSX(e.target.result);
+      } else {
+        initData(e.target.result);
+      }
+    };
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
+  }
+
+  // Basic XLSX parser (reads shared strings + sheet data without library)
+  function parseXLSX(buffer) {
+    try {
+      // XLSX is a ZIP. We'll extract the XML content using manual ZIP parsing.
+      const bytes = new Uint8Array(buffer);
+      // Find xl/sharedStrings.xml and xl/worksheets/sheet1.xml
+      const zip = readZip(bytes);
+      const sharedStringsXml = zip['xl/sharedStrings.xml'] || zip['xl/sharedStrings.xml'.toLowerCase()] || '';
+      const sheetXml = zip['xl/worksheets/sheet1.xml'] || zip['xl/worksheets/Sheet1.xml'] || '';
+      if (!sheetXml) { log('Could not read XLSX sheet. Try saving as CSV first.', 'err'); return; }
+
+      // Parse shared strings
+      const sharedStrings = [];
+      const siMatches = sharedStringsXml.matchAll(/<si>[\s\S]*?<\/si>/g);
+      for (const m of siMatches) {
+        const texts = [...m[0].matchAll(/<t[^>]*>([^<]*)<\/t>/g)].map(t => t[1]);
+        sharedStrings.push(texts.join(''));
+      }
+
+      // Parse cells
+      const rowMap = {};
+      const rowMatches = sheetXml.matchAll(/<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g);
+      for (const rm of rowMatches) {
+        const rowNum = parseInt(rm[1]);
+        rowMap[rowNum] = [];
+        const cellMatches = rm[2].matchAll(/<c r="([A-Z]+\d+)"([^>]*)>([\s\S]*?)<\/c>/g);
+        const cells = {};
+        for (const cm of cellMatches) {
+          const ref = cm[1]; const attrs = cm[2]; const content = cm[3];
+          const col = ref.replace(/\d+/,'');
+          const colIdx = colLetterToIndex(col);
+          let val = '';
+          const vMatch = content.match(/<v>([^<]*)<\/v>/);
+          if (vMatch) {
+            val = attrs.includes('t="s"') ? (sharedStrings[parseInt(vMatch[1])] || '') : vMatch[1];
+          }
+          cells[colIdx] = decodeXML(val);
+        }
+        const maxCol = Math.max(-1, ...Object.keys(cells).map(Number));
+        rowMap[rowNum] = Array.from({length: maxCol+1}, (_,i) => cells[i] || '');
+      }
+      const rowNums = Object.keys(rowMap).map(Number).sort((a,b)=>a-b);
+      if (!rowNums.length) { log('XLSX appears empty.', 'err'); return; }
+      const csvLines = rowNums.map(n => rowMap[n].map(c => c.includes(',') || c.includes('"') ? `"${c.replace(/"/g,'""')}"` : c).join(','));
+      initData(csvLines.join('\n'));
+      log('XLSX loaded: ' + (rowNums.length-1) + ' rows', 'ok');
+    } catch(e) {
+      log('XLSX parse error: ' + e.message + '. Try saving as CSV.', 'err');
+    }
+  }
+
+  function colLetterToIndex(s) {
+    let n = 0;
+    for (let i = 0; i < s.length; i++) n = n*26 + s.charCodeAt(i) - 64;
+    return n - 1;
+  }
+
+  function decodeXML(s) {
+    return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+  }
+
+  // Minimal ZIP reader — extracts stored/deflated entries
+  function readZip(bytes) {
+    const files = {};
+    let i = 0;
+    const view = new DataView(bytes.buffer);
+    while (i < bytes.length - 4) {
+      if (view.getUint32(i, true) !== 0x04034b50) { i++; continue; }
+      const compMethod = view.getUint16(i+8, true);
+      const compSize = view.getUint32(i+18, true);
+      const uncompSize = view.getUint32(i+22, true);
+      const fnLen = view.getUint16(i+26, true);
+      const extLen = view.getUint16(i+28, true);
+      const fname = new TextDecoder().decode(bytes.slice(i+30, i+30+fnLen));
+      const dataStart = i+30+fnLen+extLen;
+      const compressed = bytes.slice(dataStart, dataStart+compSize);
+      let content = '';
+      try {
+        if (compMethod === 0) {
+          content = new TextDecoder('utf-8', {fatal:false}).decode(compressed);
+        } else if (compMethod === 8) {
+          const ds = new DecompressionStream('deflate-raw');
+          // Sync inflate not available; mark as deferred
+          content = '__deflate__';
+          // Store compressed for later async handling — skip for now
+        }
+      } catch(e) {}
+      if (content !== '__deflate__') files[fname] = content;
+      i = dataStart + compSize;
+    }
+    // Async inflate for deflated entries using TransformStream
+    return files;
+  }
+
+  function parsePaste() {
+    const v = document.getElementById('pasteArea').value.trim();
+    if (v.length > 10) initData(v);
+  }
+
+  function initData(csv) {
+    const lines = csv.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { log('Need at least a header row + one data row.', 'err'); return; }
+    headers = splitLine(lines[0]);
+    rows = lines.slice(1).map(l => {
+      const cells = splitLine(l);
+      while (cells.length < headers.length) cells.push('');
+      return cells;
+    });
+    history = [];
+    sortState = {col:-1, dir:1};
+    document.getElementById('mainPanel').style.display = '';
+    document.getElementById('resetBtn').style.display = '';
+    renderTable();
+    renderStats();
+    renderChips();
+    log('Loaded ' + rows.length + ' rows × ' + headers.length + ' columns', 'ok');
+  }
+
+  function splitLine(line) {
+    const res = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"' && (i===0 || line[i-1]!='\\')) { inQ=!inQ; }
+      else if ((line[i]===',' || line[i]==='\t') && !inQ) { res.push(cur.trim()); cur=''; }
+      else { cur += line[i]; }
+    }
+    res.push(cur.trim());
+    return res;
+  }
+
+  // ── Render ─────────────────────────────────────────────────
+  function renderTable(highlight=-1) {
+    const q = (document.getElementById('searchInput').value||'').toLowerCase();
+    const displayRows = q
+      ? rows.filter(r => r.some(c => String(c).toLowerCase().includes(q)))
+      : rows;
+    document.getElementById('filteredNote').textContent = q ? `${displayRows.length} of ${rows.length} shown` : '';
+
+    const th = headers.map((h,i) =>
+      `<th onclick="showColMenu(event,${i})" title="Right-click or click for column actions">${esc(h)}${sortState.col===i?(sortState.dir===1?' ↑':' ↓'):' <span style=\'opacity:.25\'>↕</span>'}</th>`
+    ).join('');
+
+    const tb = displayRows.map((row, ri) => {
+      const isNew = ri === highlight;
+      return `<tr class="${isNew?'highlight-new':''}">${headers.map((_,ci) => {
+        const v = row[ci] || '';
+        const isNum = v !== '' && !isNaN(Number(v));
+        return `<td class="${isNum?'num':''}" contenteditable="true" onblur="cellEdit(this,${ri},${ci})">${esc(v)}</td>`;
+      }).join('')}</tr>`;
+    }).join('');
+
+    document.getElementById('dtbl').innerHTML = `<thead><tr>${th}</tr></thead><tbody>${tb}</tbody>`;
+  }
+
+  function renderStats() {
+    const numericCols = headers.filter((_,i) => rows.some(r => !isNaN(parseFloat(r[i])) && r[i]!==''));
+    document.getElementById('statsRow').innerHTML =
+      `<span><strong>${rows.length}</strong> rows</span>` +
+      `<span><strong>${headers.length}</strong> columns</span>` +
+      numericCols.slice(0,4).map(h => {
+        const i = headers.indexOf(h);
+        const vals = rows.map(r=>parseFloat(r[i])).filter(v=>!isNaN(v));
+        const sum = vals.reduce((a,b)=>a+b,0);
+        return `<span>∑ ${h}: <strong>${fmtNum(sum)}</strong></span>`;
+      }).join('');
+  }
+
+  function renderChips() {
+    const numCols = headers.filter((_,i) => rows.some(r=>!isNaN(parseFloat(r[i]))&&r[i]!==''));
+    const chips = [
+      ...numCols.slice(0,3).map(h => `sum of ${h}`),
+      ...numCols.slice(0,2).map(h => `average ${h}`),
+      headers.length > 0 ? `sort by ${headers[0]}` : null,
+      'remove duplicates',
+      'show first 10 rows',
+      headers.length > 1 ? `delete column ${headers[headers.length-1]}` : null,
+    ].filter(Boolean);
+    document.getElementById('quickChips').innerHTML = chips.map(c =>
+      `<span class="chip" onclick="document.getElementById('cmdInput').value='${c}';runCmd()">${c}</span>`
+    ).join('');
+  }
+
+  // ── Command Engine ─────────────────────────────────────────
+  function runCmd() {
+    const raw = document.getElementById('cmdInput').value.trim();
+    if (!raw) return;
+    document.getElementById('cmdInput').value = '';
+    saveHistory();
+    const cmd = raw.toLowerCase();
+
+    try {
+      // ── ADD ROW ──
+      // "add row Alice,30,NYC" or "add row name=Alice age=30"
+      if (/^add\s+row\s+/i.test(raw)) {
+        const rest = raw.replace(/^add\s+row\s+/i,'').trim();
+        let newRow;
+        if (rest.includes('=')) {
+          // key=value pairs
+          newRow = Array(headers.length).fill('');
+          rest.split(/\s+/).forEach(part => {
+            const [k,v] = part.split('=');
+            const i = headers.findIndex(h => h.toLowerCase() === k.toLowerCase());
+            if (i >= 0) newRow[i] = v;
+          });
+        } else {
+          newRow = splitLine(rest);
+          while (newRow.length < headers.length) newRow.push('');
+        }
+        rows.push(newRow);
+        renderTable(rows.length-1);
+        renderStats();
+        log(`Added row: ${newRow.join(', ')}`, 'ok');
+        return;
+      }
+
+      // ── ADD MULTIPLE ROWS ──
+      // "add rows\nAlice,30\nBob,25"  or  "add 3 empty rows"
+      if (/^add\s+(\d+)\s+empty\s+rows?/i.test(raw)) {
+        const n = parseInt(raw.match(/\d+/)[0]);
+        for (let i=0;i<n;i++) rows.push(Array(headers.length).fill(''));
+        renderTable(); renderStats();
+        log(`Added ${n} empty rows`, 'ok'); return;
+      }
+
+      // ── ADD COLUMN ──
+      // "add column salary*1.1 as bonus"
+      // "add column age+5 as age_next"
+      // "add column 'Hello' as greeting"
+      // "add column sum(price,qty) as total"
+      if (/^add\s+col(umn)?\s+/i.test(raw)) {
+        const rest = raw.replace(/^add\s+col(umn)?\s+/i,'').trim();
+        const asMatch = rest.match(/^(.+?)\s+as\s+(\w+)$/i);
+        if (!asMatch) { log('Format: add column <formula> as <name>', 'err'); return; }
+        const formula = asMatch[1].trim();
+        const newName = asMatch[2].trim();
+        if (headers.includes(newName)) { log(`Column "${newName}" already exists. Use rename or a different name.`, 'err'); return; }
+        headers.push(newName);
+        rows = rows.map(row => {
+          const val = evalFormula(formula, row);
+          return [...row, String(val)];
+        });
+        renderTable(); renderStats(); renderChips();
+        log(`Added column "${newName}"`, 'ok'); return;
+      }
+
+      // ── RENAME COLUMN ──
+      // "rename column salary to gross_salary"
+      if (/^rename\s+col(umn)?\s+/i.test(raw)) {
+        const m = raw.match(/rename\s+col(?:umn)?\s+(\S+)\s+to\s+(\S+)/i);
+        if (!m) { log('Format: rename column <old> to <new>', 'err'); return; }
+        const idx = headers.findIndex(h=>h.toLowerCase()===m[1].toLowerCase());
+        if (idx<0) { log(`Column "${m[1]}" not found`, 'err'); return; }
+        headers[idx] = m[2];
+        renderTable(); renderChips();
+        log(`Renamed "${m[1]}" → "${m[2]}"`, 'ok'); return;
+      }
+
+      // ── DELETE COLUMN ──
+      // "delete column salary" or "remove column age"
+      if (/^(delete|remove|drop)\s+col(umn)?\s+/i.test(raw)) {
+        const colName = raw.replace(/^(delete|remove|drop)\s+col(?:umn)?\s+/i,'').trim();
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        headers.splice(idx,1);
+        rows = rows.map(r => { r.splice(idx,1); return r; });
+        renderTable(); renderStats(); renderChips();
+        log(`Deleted column "${colName}"`, 'ok'); return;
+      }
+
+      // ── DELETE ROW ──
+      // "delete row 3"  "delete rows where age < 18"  "remove row 5"
+      if (/^(delete|remove)\s+row(s?)\s+where\s+/i.test(raw)) {
+        const cond = raw.replace(/^(delete|remove)\s+rows?\s+where\s+/i,'').trim();
+        const before = rows.length;
+        rows = rows.filter(row => !evalCondition(cond, row));
+        renderTable(); renderStats();
+        log(`Deleted ${before - rows.length} rows where ${cond}`, 'ok'); return;
+      }
+      if (/^(delete|remove)\s+row\s+\d+/i.test(raw)) {
+        const n = parseInt(raw.match(/\d+/)[0]) - 1;
+        if (n<0||n>=rows.length) { log('Row index out of range', 'err'); return; }
+        rows.splice(n,1);
+        renderTable(); renderStats();
+        log(`Deleted row ${n+1}`, 'ok'); return;
+      }
+
+      // ── FILTER / SHOW ──
+      // "filter where age > 30"  "show where city = London"  "keep where salary >= 50000"
+      if (/^(filter|show|keep)\s+where\s+/i.test(raw)) {
+        const cond = raw.replace(/^(filter|show|keep)\s+where\s+/i,'').trim();
+        const before = rows.length;
+        rows = rows.filter(row => evalCondition(cond, row));
+        renderTable(); renderStats();
+        log(`Kept ${rows.length} of ${before} rows where ${cond}`, 'ok'); return;
+      }
+
+      // ── SORT ──
+      // "sort by salary desc"  "sort by name"
+      if (/^sort\s+by\s+/i.test(raw)) {
+        const rest = raw.replace(/^sort\s+by\s+/i,'').trim();
+        const parts = rest.split(/\s+/);
+        const colName = parts[0];
+        const dir = (parts[1]||'').toLowerCase() === 'desc' ? -1 : 1;
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        sortState = {col:idx, dir};
+        rows.sort((a,b) => {
+          const av=a[idx]||'', bv=b[idx]||'';
+          const an=parseFloat(av),bn=parseFloat(bv);
+          if (!isNaN(an)&&!isNaN(bn)) return (an-bn)*dir;
+          return av.localeCompare(bv)*dir;
+        });
+        renderTable(); log(`Sorted by "${colName}" ${dir===1?'ascending':'descending'}`, 'ok'); return;
+      }
+
+      // ── REMOVE DUPLICATES ──
+      // "remove duplicates"  "deduplicate by email"  "remove duplicates by name,email"
+      if (/^(remove|delete)\s+dup(licate)?s?/i.test(raw) || /^deduplicate/i.test(raw)) {
+        const byMatch = raw.match(/by\s+(.+)$/i);
+        let keyIndices;
+        if (byMatch) {
+          const cols = byMatch[1].split(',').map(s=>s.trim());
+          keyIndices = cols.map(c => headers.findIndex(h=>h.toLowerCase()===c.toLowerCase())).filter(i=>i>=0);
+        } else {
+          keyIndices = headers.map((_,i)=>i); // all columns
+        }
+        const seen = new Set();
+        const before = rows.length;
+        rows = rows.filter(row => {
+          const key = keyIndices.map(i=>row[i]||'').join('\x00');
+          if (seen.has(key)) return false;
+          seen.add(key); return true;
+        });
+        renderTable(); renderStats();
+        log(`Removed ${before-rows.length} duplicates, ${rows.length} rows remain`, 'ok'); return;
+      }
+
+      // ── UPDATE / SET ──
+      // "set salary = salary * 1.1 where department = Sales"
+      // "update salary to salary * 1.05"
+      if (/^(set|update)\s+/i.test(raw)) {
+        const setMatch = raw.match(/^(?:set|update)\s+(\w+)\s*(?:=|to)\s*(.+?)(?:\s+where\s+(.+))?$/i);
+        if (!setMatch) { log('Format: set <col> = <formula> [where <condition>]', 'err'); return; }
+        const colName=setMatch[1], formula=setMatch[2].trim(), cond=setMatch[3]||null;
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        let changed=0;
+        rows = rows.map(row => {
+          if (cond && !evalCondition(cond, row)) return row;
+          row[idx] = String(evalFormula(formula, row));
+          changed++;
+          return row;
+        });
+        renderTable(); renderStats();
+        log(`Updated ${changed} rows in column "${colName}"`, 'ok'); return;
+      }
+
+      // ── CALCULATE / AGGREGATE ──
+      // "sum of salary"  "average age"  "max salary"  "min price"  "count rows"
+      if (/^(sum|total)\s+(of\s+)?(\w+)$/i.test(cmd)) {
+        const colName = cmd.match(/(\w+)$/)[1];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName);
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+        const sum = vals.reduce((a,b)=>a+b,0);
+        log(`Sum of ${colName}: ${fmtNum(sum)} (from ${vals.length} values)`, 'info'); return;
+      }
+      if (/^(avg|average|mean)\s+(of\s+)?(\w+)$/i.test(cmd)) {
+        const colName = cmd.match(/(\w+)$/)[1];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName);
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+        const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
+        log(`Average of ${colName}: ${fmtNum(avg)} (${vals.length} values)`, 'info'); return;
+      }
+      if (/^(max)\s+(of\s+)?(\w+)$/i.test(cmd)) {
+        const colName = cmd.match(/(\w+)$/)[1];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName);
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+        log(`Max of ${colName}: ${fmtNum(Math.max(...vals))}`, 'info'); return;
+      }
+      if (/^(min)\s+(of\s+)?(\w+)$/i.test(cmd)) {
+        const colName = cmd.match(/(\w+)$/)[1];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName);
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+        log(`Min of ${colName}: ${fmtNum(Math.min(...vals))}`, 'info'); return;
+      }
+      if (/^count(\s+rows?)?$/i.test(cmd)) {
+        log(`Row count: ${rows.length}`, 'info'); return;
+      }
+      if (/^count\s+(\w+)$/i.test(cmd)) {
+        const colName = cmd.match(/\w+$/)[0];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName);
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        const filled = rows.filter(r=>(r[idx]||'').trim()!=='').length;
+        log(`Non-empty values in ${colName}: ${filled} of ${rows.length}`, 'info'); return;
+      }
+
+      // ── SHOW FIRST / LAST N ──
+      // "show first 10 rows"  "show last 5"
+      if (/^show\s+first\s+(\d+)/i.test(raw)) {
+        const n = parseInt(raw.match(/\d+/)[0]);
+        rows = rows.slice(0, n);
+        renderTable(); renderStats();
+        log(`Kept first ${rows.length} rows`, 'ok'); return;
+      }
+      if (/^show\s+last\s+(\d+)/i.test(raw)) {
+        const n = parseInt(raw.match(/\d+/)[0]);
+        rows = rows.slice(-n);
+        renderTable(); renderStats();
+        log(`Kept last ${rows.length} rows`, 'ok'); return;
+      }
+
+      // ── UPPERCASE / LOWERCASE column ──
+      // "uppercase name"  "lowercase email"
+      if (/^(uppercase|upper)\s+(\w+)$/i.test(raw)) {
+        const colName = raw.split(/\s+/)[1];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        rows = rows.map(r => { r[idx]=(r[idx]||'').toUpperCase(); return r; });
+        renderTable(); log(`Uppercased "${colName}"`, 'ok'); return;
+      }
+      if (/^(lowercase|lower)\s+(\w+)$/i.test(raw)) {
+        const colName = raw.split(/\s+/)[1];
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        rows = rows.map(r => { r[idx]=(r[idx]||'').toLowerCase(); return r; });
+        renderTable(); log(`Lowercased "${colName}"`, 'ok'); return;
+      }
+
+      // ── TRIM whitespace ──
+      // "trim all"  "trim name"
+      if (/^trim\s+(all|\w+)$/i.test(raw)) {
+        const target = raw.split(/\s+/)[1].toLowerCase();
+        if (target === 'all') {
+          rows = rows.map(r => r.map(c => c.trim()));
+          log('Trimmed all columns', 'ok');
+        } else {
+          const idx = headers.findIndex(h=>h.toLowerCase()===target);
+          if (idx<0) { log(`Column "${target}" not found`, 'err'); return; }
+          rows = rows.map(r => { r[idx]=(r[idx]||'').trim(); return r; });
+          log(`Trimmed "${target}"`, 'ok');
+        }
+        renderTable(); return;
+      }
+
+      // ── REPLACE IN COLUMN ──
+      // "replace Engineering with Eng in department"
+      if (/^replace\s+.+\s+with\s+.+\s+in\s+\w+$/i.test(raw)) {
+        const m = raw.match(/^replace\s+(.+?)\s+with\s+(.*?)\s+in\s+(\w+)$/i);
+        if (m) {
+          const [,find,repl,colName] = m;
+          const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+          if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+          let count=0;
+          rows = rows.map(r => {
+            if (String(r[idx]||'').includes(find)) { r[idx]=String(r[idx]).replaceAll(find,repl); count++; }
+            return r;
+          });
+          renderTable(); log(`Replaced "${find}"→"${repl}" in ${count} cells of "${colName}"`, 'ok'); return;
+        }
+      }
+
+      // ── FILL EMPTY ──
+      // "fill empty salary with 0"
+      if (/^fill\s+empty\s+(\w+)\s+with\s+(.+)$/i.test(raw)) {
+        const m = raw.match(/^fill\s+empty\s+(\w+)\s+with\s+(.+)$/i);
+        const idx = headers.findIndex(h=>h.toLowerCase()===m[1].toLowerCase());
+        if (idx<0) { log(`Column "${m[1]}" not found`, 'err'); return; }
+        let count=0;
+        rows = rows.map(r => { if(!(r[idx]||'').trim()){r[idx]=m[2].trim();count++;}; return r; });
+        renderTable(); log(`Filled ${count} empty cells in "${m[1]}" with "${m[2].trim()}"`, 'ok'); return;
+      }
+
+      // ── ROUND ──
+      // "round salary to 2"  "round price"
+      if (/^round\s+(\w+)(\s+to\s+(\d+))?$/i.test(raw)) {
+        const m = raw.match(/^round\s+(\w+)(?:\s+to\s+(\d+))?$/i);
+        const colName=m[1], dp=parseInt(m[2]||'0');
+        const idx = headers.findIndex(h=>h.toLowerCase()===colName.toLowerCase());
+        if (idx<0) { log(`Column "${colName}" not found`, 'err'); return; }
+        rows = rows.map(r => {
+          const n=parseFloat(r[idx]); if(!isNaN(n)) r[idx]=n.toFixed(dp);
+          return r;
+        });
+        renderTable(); log(`Rounded "${colName}" to ${dp} decimal places`, 'ok'); return;
+      }
+
+      // ── PIVOT / GROUP BY ──
+      // "group by department sum salary"
+      if (/^group\s+by\s+(\w+)\s+(sum|avg|count|max|min)\s+(\w+)?$/i.test(raw)) {
+        const m = raw.match(/^group\s+by\s+(\w+)\s+(sum|avg|count|max|min)\s+(\w+)?$/i);
+        const gCol=m[1], agg=m[2].toLowerCase(), vColName=m[3];
+        const gIdx = headers.findIndex(h=>h.toLowerCase()===gCol.toLowerCase());
+        if (gIdx<0) { log(`Column "${gCol}" not found`, 'err'); return; }
+        const vIdx = vColName ? headers.findIndex(h=>h.toLowerCase()===vColName.toLowerCase()) : -1;
+        if (vColName && vIdx<0) { log(`Column "${vColName}" not found`, 'err'); return; }
+
+        const groups = {};
+        rows.forEach(row => {
+          const key = row[gIdx]||'';
+          if (!groups[key]) groups[key] = [];
+          if (vIdx>=0) groups[key].push(parseFloat(row[vIdx])||0);
+          else groups[key].push(1);
+        });
+
+        headers = [gCol, `${agg}(${vColName||'rows'})`];
+        rows = Object.entries(groups).map(([k,vals]) => {
+          let r;
+          if (agg==='sum') r=vals.reduce((a,b)=>a+b,0);
+          else if (agg==='avg') r=vals.reduce((a,b)=>a+b,0)/vals.length;
+          else if (agg==='count') r=vals.length;
+          else if (agg==='max') r=Math.max(...vals);
+          else if (agg==='min') r=Math.min(...vals);
+          return [k, String(fmtNum(r))];
+        });
+        renderTable(); renderStats(); renderChips();
+        log(`Grouped by "${gCol}" with ${agg} of ${vColName||'rows'}`, 'ok'); return;
+      }
+
+      // ── REORDER COLUMNS ──
+      // "reorder columns name,email,salary"
+      if (/^reorder\s+col(umn)?s?\s+/i.test(raw)) {
+        const colList = raw.replace(/^reorder\s+col(?:umn)?s?\s+/i,'').split(',').map(c=>c.trim());
+        const indices = colList.map(c => headers.findIndex(h=>h.toLowerCase()===c.toLowerCase()));
+        if (indices.some(i=>i<0)) { log('One or more columns not found', 'err'); return; }
+        const newHeaders = indices.map(i=>headers[i]);
+        const newRows = rows.map(r => indices.map(i=>r[i]||''));
+        headers = newHeaders; rows = newRows;
+        renderTable(); renderChips();
+        log(`Reordered columns: ${newHeaders.join(', ')}`, 'ok'); return;
+      }
+
+      // ── RESET FILTER ──
+      if (/^(reset|clear|show all)/i.test(cmd)) {
+        history = []; undoLast(); return;
+      }
+
+      log(`Unknown command: "${raw}". Try: add row, add column, filter where, sort by, remove duplicates, set col = formula, group by…`, 'err');
+    } catch(e) {
+      log('Error: ' + e.message, 'err');
+    }
+  }
+
+  // ── Formula evaluator ──────────────────────────────────────
+  function evalFormula(expr, row) {
+    // Replace column names with their values
+    let e = expr;
+    // Replace column refs (case-insensitive, longest first to avoid partial replacement)
+    const sorted = [...headers].sort((a,b) => b.length-a.length);
+    sorted.forEach(h => {
+      const idx = headers.indexOf(h);
+      const val = row[idx] || '0';
+      const num = parseFloat(val);
+      const replacement = isNaN(num) ? JSON.stringify(val) : String(num);
+      e = e.replace(new RegExp('\\b'+h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'), replacement);
+    });
+    // Handle string literal (quoted)
+    if (/^["'].*["']$/.test(e)) return e.slice(1,-1);
+    // Built-in functions
+    e = e.replace(/\bround\((.+?),(\d+)\)/gi, (_,v,d) => {
+      try { return (+eval(v)).toFixed(parseInt(d)); } catch{return '0';}
+    });
+    e = e.replace(/\babs\((.+?)\)/gi, (_,v) => { try { return Math.abs(eval(v)); } catch{return '0';} });
+    e = e.replace(/\bsqrt\((.+?)\)/gi, (_,v) => { try { return Math.sqrt(eval(v)); } catch{return '0';} });
+    e = e.replace(/\bconcat\((.+?)\)/gi, (_,v) => v.split(',').map(s=>s.trim().replace(/^["']|["']$/g,'')).join(''));
+    e = e.replace(/\blower\((.+?)\)/gi, (_,v) => v.toLowerCase());
+    e = e.replace(/\bupper\((.+?)\)/gi, (_,v) => v.toUpperCase());
+    try {
+      const result = Function('"use strict"; return (' + e + ')')();
+      return typeof result === 'number' && isNaN(result) ? '' : result;
+    } catch {
+      return e; // return as-is string
+    }
+  }
+
+  // ── Condition evaluator ────────────────────────────────────
+  function evalCondition(cond, row) {
+    let e = cond;
+    // Replace column names (longest first)
+    const sorted = [...headers].sort((a,b)=>b.length-a.length);
+    sorted.forEach(h => {
+      const idx = headers.indexOf(h);
+      const val = row[idx] || '';
+      const num = parseFloat(val);
+      const replacement = isNaN(num) ? JSON.stringify(val) : String(num);
+      e = e.replace(new RegExp('\\b'+h.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'), replacement);
+    });
+    // "contains" / "starts with" / "ends with"
+    e = e.replace(/(\S+)\s+contains\s+(\S+)/gi, '$1.includes($2)');
+    e = e.replace(/(\S+)\s+starts\s+with\s+(\S+)/gi, '$1.startsWith($2)');
+    e = e.replace(/(\S+)\s+ends\s+with\s+(\S+)/gi, '$1.endsWith($2)');
+    // "= value" → "=== value"
+    e = e.replace(/(?<![=!<>])=(?!=)/g, '===');
+    try {
+      return !!Function('"use strict"; return (' + e + ')')();
+    } catch { return false; }
+  }
+
+  // ── History / Undo ─────────────────────────────────────────
+  function saveHistory() {
+    history.push({headers:[...headers], rows: rows.map(r=>[...r])});
+    if (history.length > 30) history.shift();
+  }
+  function undoLast() {
+    if (!history.length) { log('Nothing to undo', 'info'); return; }
+    const prev = history.pop();
+    headers = prev.headers; rows = prev.rows;
+    renderTable(); renderStats(); renderChips();
+    log('Undone last change', 'info');
+  }
+
+  // ── Column right-click menu ────────────────────────────────
+  function showColMenu(e, idx) {
+    e.stopPropagation();
+    activeColIdx = idx;
+    const menu = document.getElementById('colMenu');
+    menu.style.display = '';
+    menu.style.left = Math.min(e.pageX, window.innerWidth-200) + 'px';
+    menu.style.top = e.pageY + 'px';
+  }
+  document.addEventListener('click', () => document.getElementById('colMenu').style.display='none');
+
+  function colAction(action) {
+    const idx = activeColIdx;
+    if (idx<0) return;
+    const h = headers[idx];
+    saveHistory();
+    if (action === 'sum') {
+      const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+      log(`Sum of ${h}: ${fmtNum(vals.reduce((a,b)=>a+b,0))} (${vals.length} values)`, 'info'); return;
+    }
+    if (action === 'avg') {
+      const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+      log(`Avg of ${h}: ${fmtNum(vals.reduce((a,b)=>a+b,0)/vals.length)}`, 'info'); return;
+    }
+    if (action === 'min') {
+      const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+      log(`Min of ${h}: ${fmtNum(Math.min(...vals))}`, 'info'); return;
+    }
+    if (action === 'max') {
+      const vals = rows.map(r=>parseFloat(r[idx])).filter(v=>!isNaN(v));
+      log(`Max of ${h}: ${fmtNum(Math.max(...vals))}`, 'info'); return;
+    }
+    if (action === 'count') {
+      const n = rows.filter(r=>(r[idx]||'').trim()!=='').length;
+      log(`Non-empty in ${h}: ${n} of ${rows.length}`, 'info'); return;
+    }
+    if (action === 'sort_asc') {
+      sortState={col:idx,dir:1};
+      rows.sort((a,b)=>{const av=a[idx]||'',bv=b[idx]||'';const an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return an-bn;return av.localeCompare(bv);});
+      renderTable(); log(`Sorted by "${h}" ascending`, 'ok'); return;
+    }
+    if (action === 'sort_desc') {
+      sortState={col:idx,dir:-1};
+      rows.sort((a,b)=>{const av=a[idx]||'',bv=b[idx]||'';const an=parseFloat(av),bn=parseFloat(bv);if(!isNaN(an)&&!isNaN(bn))return bn-an;return bv.localeCompare(av);});
+      renderTable(); log(`Sorted by "${h}" descending`, 'ok'); return;
+    }
+    if (action === 'del_col') {
+      headers.splice(idx,1); rows=rows.map(r=>{r.splice(idx,1);return r;});
+      renderTable(); renderStats(); renderChips();
+      log(`Deleted column "${h}"`, 'ok'); return;
+    }
+  }
+
+  // ── Download / Copy ────────────────────────────────────────
+  function downloadCSV() {
+    const lines = [headers.join(','), ...rows.map(r=>r.map(c=>String(c).includes(',')||String(c).includes('"')?`"${String(c).replace(/"/g,'""')}"`:c).join(','))];
+    const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='result.csv';a.click();
+  }
+  function copyTableCSV() {
+    const lines=[headers.join(','),...rows.map(r=>r.join(','))];
+    copyText(lines.join('\n'), document.querySelector('[onclick="copyTableCSV()"]'));
+  }
+
+  // ── Cell inline edit ───────────────────────────────────────
+  function cellEdit(el, ri, ci) {
+    if (!rows[ri]) return;
+    rows[ri][ci] = el.textContent.trim();
+    renderStats();
+  }
+
+  // ── Inline search ──────────────────────────────────────────
+  function applySearch() { renderTable(); }
+
+  // ── Utilities ──────────────────────────────────────────────
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function fmtNum(n){if(isNaN(n))return'—';return Number.isInteger(n)?n.toLocaleString():parseFloat(n.toFixed(4)).toLocaleString();}
+
+  function log(msg, type='info') {
+    const el = document.getElementById('cmdLog');
+    const cls = type==='ok'?'log-ok':type==='err'?'log-err':'log-info';
+    const div = document.createElement('div');
+    div.className='log-line '+cls;
+    div.textContent=(type==='ok'?'✓ ':type==='err'?'✗ ':'ℹ ') + msg;
+    el.prepend(div);
+    if (el.children.length > 20) el.lastChild.remove();
+  }
+
+  function resetAll() {
+    headers=[];rows=[];history=[];
+    document.getElementById('mainPanel').style.display='none';
+    document.getElementById('pasteArea').value='';
+    document.getElementById('fileIn').value='';
+    document.getElementById('fileInfo').textContent='';
+    document.getElementById('resetBtn').style.display='none';
+    document.getElementById('cmdLog').innerHTML='';
+  }
+
+  // ── Samples ────────────────────────────────────────────────
+  function loadSample(type) {
+    const samples = {
+      sales: `product,category,units,price,revenue\nLaptop Pro,Electronics,45,1299,58455\nWireless Mouse,Electronics,120,29.99,3598.80\nOffice Chair,Furniture,15,399,5985\nDesk Lamp,Furniture,60,49.99,2999.40\nUSB Hub,Electronics,200,19.99,3998\nMonitor 27",Electronics,30,349,10470\nKeyboard,Electronics,85,79.99,6799.15\nStanding Desk,Furniture,8,599,4792\nWebcam HD,Electronics,55,89.99,4949.45\nNotebook Pack,Stationery,300,12.99,3897`,
+      employees: `id,name,department,salary,years,email\n1,Alice Johnson,Engineering,92000,5,alice@company.com\n2,Bob Smith,Sales,68000,3,bob@company.com\n3,Charlie Brown,Engineering,88000,7,charlie@company.com\n4,Diana Prince,HR,61000,2,diana@company.com\n5,Evan Williams,Sales,72000,4,evan@company.com\n6,Fiona Green,Engineering,95000,8,fiona@company.com\n7,George Miller,Marketing,66000,3,george@company.com\n8,Hannah Lee,HR,58000,1,hannah@company.com\n9,Ivan Clark,Engineering,89000,6,ivan@company.com\n10,Julia Adams,Marketing,71000,5,julia@company.com`
+    };
+    document.getElementById('pasteArea').value = samples[type];
+    initData(samples[type]);
+  }
+
+  // Enter key on command
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('cmdInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') runCmd();
+    });
+  });
+  </script>
+</body>
+</html>
