@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Age Calculator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Age Calculator</div>
+    <div class="tool-header">
+      <h1><span>🎂</span> Age Calculator</h1>
+      <p>Calculate exact age from a date of birth to today or a custom date.</p>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row" style="margin:0"><label>Date of Birth</label><input type="date" id="dob" oninput="calc()"></div>
+        <div class="form-row" style="margin:0"><label>To Date (default: today)</label><input type="date" id="toDate" oninput="calc()"></div>
+      </div>
+      <div id="results" style="margin-top:18px"></div>
+    </div>
+  </main>
+  <script>
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('toDate').value = todayStr;
+    document.getElementById('dob').max = todayStr;
+
+    function calc() {
+      const d1 = new Date(document.getElementById('dob').value);
+      const d2 = new Date(document.getElementById('toDate').value || todayStr);
+      if (isNaN(d1)|isNaN(d2)||d1>d2) { document.getElementById('results').innerHTML=''; return; }
+
+      let y=d2.getFullYear()-d1.getFullYear(), m=d2.getMonth()-d1.getMonth(), d=d2.getDate()-d1.getDate();
+      if(d<0){m--;const prev=new Date(d2.getFullYear(),d2.getMonth(),0).getDate();d+=prev;}
+      if(m<0){y--;m+=12;}
+
+      const totalDays=Math.floor((d2-d1)/86400000);
+      const totalWeeks=Math.floor(totalDays/7);
+      const totalMonths=y*12+m;
+      const totalHours=totalDays*24;
+
+      const nextBday=new Date(d2.getFullYear(),d1.getMonth(),d1.getDate());
+      if(nextBday<=d2) nextBday.setFullYear(d2.getFullYear()+1);
+      const daysToNext=Math.ceil((nextBday-d2)/86400000);
+
+      document.getElementById('results').innerHTML=`
+        <div class="result-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+          <div style="font-size:28px;font-weight:900;color:var(--primary)">${y} years, ${m} months, ${d} days</div>
+        </div>
+        <div class="stats-bar" style="margin-top:12px">
+          <div class="stat-chip"><strong>${totalDays.toLocaleString()}</strong> total days</div>
+          <div class="stat-chip"><strong>${totalWeeks.toLocaleString()}</strong> total weeks</div>
+          <div class="stat-chip"><strong>${totalMonths.toLocaleString()}</strong> total months</div>
+          <div class="stat-chip"><strong>${totalHours.toLocaleString()}</strong> total hours</div>
+          <div class="stat-chip"><strong>${daysToNext}</strong> days to next birthday</div>
+        </div>`;
+    }
+    calc();
+  </script>
+</body>
+</html>

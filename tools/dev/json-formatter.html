@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Formatter — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .json-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:640px){.json-cols{grid-template-columns:1fr}}
+    .json-out{font-family:"SF Mono","Fira Code",monospace;font-size:12.5px;background:#f8fafc;border:1.5px solid var(--border);border-radius:7px;padding:12px;min-height:300px;overflow:auto;white-space:pre;color:var(--text)}
+    .jk{color:#7c3aed}.jv{color:#059669}.js{color:#b91c1c}.jn{color:#2563eb}.jb{color:#d97706}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page" style="max-width:960px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / JSON Formatter</div>
+    <div class="tool-header">
+      <h1><span>{ }</span> JSON Formatter</h1>
+      <p>Format, validate, minify, and syntax-highlight JSON.</p>
+    </div>
+    <div class="card">
+      <div class="btn-group" style="margin-bottom:14px">
+        <button class="btn btn-primary" onclick="format(2)">Format (2 spaces)</button>
+        <button class="btn btn-ghost" onclick="format(4)">Format (4 spaces)</button>
+        <button class="btn btn-ghost" onclick="minify()">Minify</button>
+        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer;margin-left:4px"><input type="checkbox" id="sortKeys"> Sort keys</label>
+      </div>
+      <div class="json-cols">
+        <div>
+          <label style="margin-bottom:6px">Input JSON</label>
+          <textarea id="input" rows="18" style="font-family:'SF Mono','Fira Code',monospace;font-size:12.5px" placeholder='{"name":"John","age":30}'></textarea>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="margin:0">Output</label>
+            <button class="btn btn-copy" onclick="copyOut()">Copy</button>
+          </div>
+          <div class="json-out" id="output"></div>
+        </div>
+      </div>
+      <div id="err" style="margin-top:10px;font-size:13px;color:#dc2626;font-family:monospace"></div>
+    </div>
+  </main>
+  <script>
+    function sortObj(obj) {
+      if (Array.isArray(obj)) return obj.map(sortObj);
+      if (typeof obj === 'object' && obj !== null) {
+        return Object.keys(obj).sort().reduce((r,k) => { r[k]=sortObj(obj[k]); return r; }, {});
+      }
+      return obj;
+    }
+    function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    function highlight(json) {
+      return esc(json).replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+        let cls='jn';
+        if(/^"/.test(m)){cls=/:$/.test(m)?'jk':'js';}
+        else if(/true|false/.test(m)){cls='jb';}
+        else if(/null/.test(m)){cls='jb';}
+        return `<span class="${cls}">${m}</span>`;
+      });
+    }
+    function parse() {
+      const v = document.getElementById('input').value.trim();
+      document.getElementById('err').textContent='';
+      if(!v) return null;
+      try { return JSON.parse(v); } catch(e) { document.getElementById('err').textContent='Parse error: '+e.message; return null; }
+    }
+    function format(sp) {
+      let obj=parse(); if(obj===null) return;
+      if(document.getElementById('sortKeys').checked) obj=sortObj(obj);
+      const pretty=JSON.stringify(obj,null,sp);
+      document.getElementById('output').innerHTML=highlight(pretty);
+    }
+    function minify() {
+      const obj=parse(); if(obj===null) return;
+      document.getElementById('output').innerHTML=highlight(JSON.stringify(obj));
+    }
+    function copyOut() { navigator.clipboard.writeText(document.getElementById('output').textContent); }
+    function clearAll() { document.getElementById('input').value=''; document.getElementById('output').innerHTML=''; document.getElementById('err').textContent=''; }
+  </script>
+</body>
+</html>

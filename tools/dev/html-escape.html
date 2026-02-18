@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML Escape / Unescape — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / HTML Escape</div>
+    <div class="tool-header">
+      <h1><span>🏷️</span> HTML Escape / Unescape</h1>
+      <p>Escape special characters to HTML entities, or unescape them back.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input</label><textarea id="input" rows="7" placeholder="<h1>Hello &amp; World</h1>"></textarea></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="escape_()">Escape HTML</button>
+        <button class="btn btn-ghost" onclick="unescape_()">Unescape HTML</button>
+        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer"><input type="checkbox" id="fullEntities"> Full named entities</label>
+      </div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="7" readonly style="font-family:'SF Mono','Fira Code',monospace"></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    const ENTITIES = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+    const FULL_ENTITIES = Object.assign({},ENTITIES,{'©':'&copy;','®':'&reg;','™':'&trade;','€':'&euro;','£':'&pound;','¥':'&yen;','°':'&deg;','±':'&plusmn;','×':'&times;','÷':'&divide;',' ':' '});
+    function escape_(){
+      const v=document.getElementById('input').value;
+      const map=document.getElementById('fullEntities').checked?FULL_ENTITIES:ENTITIES;
+      const re=new RegExp('['+Object.keys(map).map(k=>k.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&')).join('')+']','g');
+      document.getElementById('output').value=v.replace(re,m=>map[m]||m);
+    }
+    function unescape_(){
+      const div=document.createElement('div');
+      div.innerHTML=document.getElementById('input').value;
+      document.getElementById('output').value=div.textContent;
+    }
+    function clearAll(){document.getElementById('input').value='';document.getElementById('output').value='';}
+  </script>
+</body>
+</html>

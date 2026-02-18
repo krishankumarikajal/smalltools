@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gradient Generator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .grad-preview{width:100%;height:160px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:16px;transition:background .1s}
+    .stop-row{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+    .stop-row input[type=color]{width:48px;height:38px;border-radius:6px;border:1.5px solid var(--border);cursor:pointer;padding:2px}
+    .stop-row input[type=range]{flex:1}
+    .code-box{background:#1e293b;color:#f1f5f9;padding:12px 16px;border-radius:7px;font-family:"SF Mono","Fira Code",monospace;font-size:13px;margin-top:14px;word-break:break-all;position:relative}
+    .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    .preset-swatch{width:40px;height:40px;border-radius:7px;cursor:pointer;border:1.5px solid var(--border);transition:transform .15s}
+    .preset-swatch:hover{transform:scale(1.1)}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Color</a> / Gradient Generator</div>
+    <div class="tool-header">
+      <h1><span>🌈</span> Gradient Generator</h1>
+      <p>Create CSS linear gradients with live preview and copy-ready code.</p>
+    </div>
+    <div class="card">
+      <div class="grad-preview" id="preview"></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+        <div class="form-row" style="margin:0">
+          <label>Type</label>
+          <select id="type" onchange="render()"><option value="linear">Linear</option><option value="radial">Radial</option><option value="conic">Conic</option></select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Angle (linear)</label>
+          <input type="number" id="angle" value="90" min="0" max="360" oninput="render()" style="width:80px">
+        </div>
+        <button class="btn btn-ghost" onclick="addStop()">+ Add Color Stop</button>
+      </div>
+      <div id="stops"></div>
+      <div class="code-box" id="codeBox">
+        <button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('cssCode').textContent)">Copy</button>
+        <code id="cssCode"></code>
+      </div>
+      <div><label style="margin-top:14px;display:block">Presets</label><div class="presets" id="presets"></div></div>
+    </div>
+  </main>
+  <script>
+    let colorStops=[{color:'#2563eb',pos:0},{color:'#7c3aed',pos:50},{color:'#ec4899',pos:100}];
+    const PRESETS=[
+      ['#2563eb','#7c3aed'],['#f97316','#ef4444'],['#22c55e','#14b8a6'],
+      ['#eab308','#f97316'],['#06b6d4','#2563eb'],['#a855f7','#ec4899'],
+      ['#111827','#374151'],['#fbbf24','#f59e0b','#f97316'],['#10b981','#2563eb'],['#ff6b6b','#feca57'],
+    ];
+
+    function renderStops(){
+      document.getElementById('stops').innerHTML=colorStops.map((s,i)=>`
+        <div class="stop-row">
+          <input type="color" value="${s.color}" oninput="colorStops[${i}].color=this.value;render()">
+          <input type="range" min="0" max="100" value="${s.pos}" oninput="colorStops[${i}].pos=+this.value;render()">
+          <span style="font-size:12px;font-family:monospace;width:30px">${s.pos}%</span>
+          ${colorStops.length>2?`<button class="btn btn-ghost" style="padding:4px 10px;font-size:12px" onclick="colorStops.splice(${i},1);renderStops();render()">✕</button>`:''}
+        </div>`).join('');
+    }
+
+    function render(){
+      const type=document.getElementById('type').value;
+      const angle=document.getElementById('angle').value;
+      const sorted=[...colorStops].sort((a,b)=>a.pos-b.pos);
+      const stops=sorted.map(s=>`${s.color} ${s.pos}%`).join(', ');
+      let grad;
+      if(type==='linear') grad=`linear-gradient(${angle}deg, ${stops})`;
+      else if(type==='radial') grad=`radial-gradient(circle, ${stops})`;
+      else grad=`conic-gradient(from ${angle}deg, ${stops})`;
+      document.getElementById('preview').style.background=grad;
+      const css=`background: ${grad};`;
+      document.getElementById('cssCode').textContent=css;
+    }
+
+    function addStop(){
+      colorStops.push({color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'),pos:50});
+      renderStops();render();
+    }
+
+    function loadPreset(colors){
+      const step=100/(colors.length-1);
+      colorStops=colors.map((c,i)=>({color:c,pos:Math.round(i*step)}));
+      renderStops();render();
+    }
+
+    document.getElementById('presets').innerHTML=PRESETS.map((p,i)=>`
+      <div class="preset-swatch" title="Load preset" onclick="loadPreset(${JSON.stringify(p)})"
+        style="background:linear-gradient(135deg,${p.join(',')})"></div>`).join('');
+
+    renderStops();render();
+  </script>
+</body>
+</html>

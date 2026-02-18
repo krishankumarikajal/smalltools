@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Number Base Converter — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>.base-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media(max-width:500px){.base-grid{grid-template-columns:1fr}}</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Base Converter</div>
+    <div class="tool-header">
+      <h1><span>🔢</span> Number Base Converter</h1>
+      <p>Convert numbers between binary, octal, decimal and hexadecimal.</p>
+    </div>
+    <div class="card">
+      <div class="base-grid">
+        <div class="form-row" style="margin:0">
+          <label>Decimal (Base 10)</label>
+          <input type="text" id="dec" oninput="fromBase(10,'dec')" placeholder="255">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Binary (Base 2)</label>
+          <input type="text" id="bin" oninput="fromBase(2,'bin')" placeholder="11111111">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Octal (Base 8)</label>
+          <input type="text" id="oct" oninput="fromBase(8,'oct')" placeholder="377">
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Hexadecimal (Base 16)</label>
+          <input type="text" id="hex" oninput="fromBase(16,'hex')" placeholder="FF">
+        </div>
+      </div>
+      <div id="err" style="margin-top:10px;font-size:13px;color:#dc2626"></div>
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+        <label>Custom Base Converter</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:6px">
+          <input type="text" id="customVal" placeholder="Value" style="width:130px">
+          <label style="margin:0;font-weight:400">From base <input type="number" id="fromB" value="10" min="2" max="36" style="width:60px;margin-left:6px"></label>
+          <label style="margin:0;font-weight:400">To base <input type="number" id="toB" value="2" min="2" max="36" style="width:60px;margin-left:6px"></label>
+          <button class="btn btn-primary" onclick="customConvert()">Convert</button>
+        </div>
+        <div id="customResult" style="margin-top:10px;font-size:20px;font-weight:800;color:var(--primary)"></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    let locked = false;
+    function fromBase(base, src) {
+      if (locked) return;
+      locked = true;
+      const val = document.getElementById(src).value.trim();
+      document.getElementById('err').textContent = '';
+      if (!val) { ['dec','bin','oct','hex'].forEach(id => { if(id!==src) document.getElementById(id).value=''; }); locked=false; return; }
+      try {
+        const n = parseInt(val, base);
+        if (isNaN(n)) throw new Error('Invalid number');
+        if (src!=='dec') document.getElementById('dec').value = n.toString(10);
+        if (src!=='bin') document.getElementById('bin').value = n.toString(2);
+        if (src!=='oct') document.getElementById('oct').value = n.toString(8);
+        if (src!=='hex') document.getElementById('hex').value = n.toString(16).toUpperCase();
+      } catch(e) { document.getElementById('err').textContent = 'Invalid input for base ' + base; }
+      locked = false;
+    }
+    function customConvert() {
+      const v = document.getElementById('customVal').value.trim();
+      const fb = parseInt(document.getElementById('fromB').value);
+      const tb = parseInt(document.getElementById('toB').value);
+      try {
+        const n = parseInt(v, fb);
+        if (isNaN(n)) throw 0;
+        document.getElementById('customResult').textContent = n.toString(tb).toUpperCase();
+      } catch(e) { document.getElementById('customResult').textContent = 'Invalid input'; }
+    }
+  </script>
+</body>
+</html>

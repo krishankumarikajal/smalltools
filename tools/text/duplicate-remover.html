@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duplicate Line Remover — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Duplicate Line Remover</div>
+    <div class="tool-header">
+      <h1><span>🧹</span> Duplicate Line Remover</h1>
+      <p>Remove duplicate lines from any list or text block.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input (one item per line)</label><textarea id="input" rows="10" placeholder="apple&#10;banana&#10;apple&#10;cherry&#10;banana"></textarea></div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="trimLines" checked> Trim whitespace</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="ignoreCase"> Ignore case</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="removeEmpty"> Remove empty lines</label>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="process()">Remove Duplicates</button><button class="btn btn-ghost" onclick="clearAll()">Clear</button></div>
+      <div id="info" style="font-size:13px;color:var(--text-2);margin-top:8px"></div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="10" readonly></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    function process() {
+      const raw = document.getElementById('input').value;
+      const trim = document.getElementById('trimLines').checked;
+      const ci = document.getElementById('ignoreCase').checked;
+      const noEmpty = document.getElementById('removeEmpty').checked;
+      let lines = raw.split('\n');
+      if (trim) lines = lines.map(l => l.trim());
+      if (noEmpty) lines = lines.filter(l => l !== '');
+      const seen = new Set();
+      const unique = lines.filter(l => {
+        const key = ci ? l.toLowerCase() : l;
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      });
+      document.getElementById('output').value = unique.join('\n');
+      document.getElementById('info').textContent = `${lines.length} lines in → ${unique.length} unique lines out (${lines.length - unique.length} duplicates removed)`;
+    }
+    function clearAll() { document.getElementById('input').value=''; document.getElementById('output').value=''; document.getElementById('info').textContent=''; }
+  </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Counter — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="../../index.html" class="logo">Small<span>Tools</span></a>
+    </div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Word Counter</div>
+    <div class="tool-header">
+      <h1><span>📝</span> Word Counter</h1>
+      <p>Count words, characters, sentences and paragraphs in real time.</p>
+    </div>
+    <div class="card">
+      <div class="form-row">
+        <label for="inputText">Paste or type your text</label>
+        <textarea id="inputText" placeholder="Start typing..." rows="10"></textarea>
+      </div>
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-chip"><strong id="wc">0</strong> Words</div>
+        <div class="stat-chip"><strong id="cc">0</strong> Characters</div>
+        <div class="stat-chip"><strong id="ccns">0</strong> Chars (no spaces)</div>
+        <div class="stat-chip"><strong id="sc">0</strong> Sentences</div>
+        <div class="stat-chip"><strong id="pc">0</strong> Paragraphs</div>
+        <div class="stat-chip"><strong id="rt">0</strong> min read</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-ghost" onclick="document.getElementById('inputText').value=''; update()">Clear</button>
+      </div>
+    </div>
+  </main>
+  <script>
+    const el = id => document.getElementById(id);
+    function update() {
+      const t = el('inputText').value;
+      const words = t.trim() === '' ? 0 : t.trim().split(/\s+/).filter(Boolean).length;
+      const chars = t.length;
+      const charsNoSpace = t.replace(/\s/g, '').length;
+      const sentences = t.split(/[.!?]+/).filter(s => s.trim()).length;
+      const paras = t.split(/\n\s*\n/).filter(p => p.trim()).length;
+      const readTime = Math.max(1, Math.ceil(words / 200));
+      el('wc').textContent = words;
+      el('cc').textContent = chars;
+      el('ccns').textContent = charsNoSpace;
+      el('sc').textContent = sentences;
+      el('pc').textContent = paras || (t.trim() ? 1 : 0);
+      el('rt').textContent = readTime;
+    }
+    el('inputText').addEventListener('input', update);
+  </script>
+</body>
+</html>

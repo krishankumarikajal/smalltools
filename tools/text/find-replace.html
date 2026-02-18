@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find & Replace — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Find &amp; Replace</div>
+    <div class="tool-header">
+      <h1><span>🔍</span> Find &amp; Replace</h1>
+      <p>Find and replace text with optional case sensitivity and regex.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Text</label><textarea id="input" rows="8" placeholder="Paste text here..."></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row" style="margin:0"><label>Find</label><input type="text" id="find" placeholder="Search term..."></div>
+        <div class="form-row" style="margin:0"><label>Replace With</label><input type="text" id="replace" placeholder="Replacement..."></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:10px;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="caseSensitive"> Case sensitive</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="useRegex"> Use regex</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="replaceAll" checked> Replace all</label>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="doReplace()">Replace</button><button class="btn btn-ghost" onclick="clearAll()">Clear</button></div>
+      <div id="countBadge" style="margin-top:10px;font-size:13px;color:var(--text-2)"></div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="8" readonly></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    function doReplace() {
+      const text = document.getElementById('input').value;
+      let find = document.getElementById('find').value;
+      const repl = document.getElementById('replace').value;
+      const cs = document.getElementById('caseSensitive').checked;
+      const regex = document.getElementById('useRegex').checked;
+      const all = document.getElementById('replaceAll').checked;
+      if (!find) return;
+      let count = 0;
+      let result;
+      try {
+        let pattern;
+        if (regex) pattern = new RegExp(find, (cs ? '' : 'i') + (all ? 'g' : ''));
+        else {
+          const esc = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          pattern = new RegExp(esc, (cs ? '' : 'i') + (all ? 'g' : ''));
+        }
+        result = text.replace(pattern, m => { count++; return repl; });
+        document.getElementById('countBadge').textContent = count + ' replacement(s) made.';
+      } catch(e) {
+        document.getElementById('countBadge').textContent = 'Invalid regex: ' + e.message;
+        result = text;
+      }
+      document.getElementById('output').value = result;
+    }
+    function clearAll() {
+      ['input','find','replace','output'].forEach(id => document.getElementById(id).value='');
+      document.getElementById('countBadge').textContent='';
+    }
+  </script>
+</body>
+</html>

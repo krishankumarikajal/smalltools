@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scientific Calculator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .calc-wrap{max-width:400px}
+    .calc-display{background:#1e293b;color:#f1f5f9;padding:16px 20px;border-radius:10px 10px 0 0;text-align:right;min-height:80px}
+    .calc-expr{font-size:13px;color:#94a3b8;min-height:20px;word-break:break-all}
+    .calc-val{font-size:32px;font-weight:700;word-break:break-all}
+    .calc-keys{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:8px;background:#f1f5f9;border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px}
+    .key{padding:12px 4px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;background:#fff;border:1px solid var(--border)}
+    .key:hover{background:#e2e8f0}
+    .key.op{background:#eff6ff;color:var(--primary)}
+    .key.eq{background:var(--primary);color:#fff;grid-column:span 2}
+    .key.eq:hover{background:var(--primary-dark)}
+    .key.fn{background:#f0fdf4;color:#16a34a;font-size:11px}
+    .key.clr{background:#fef2f2;color:#dc2626}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Scientific Calculator</div>
+    <div class="tool-header">
+      <h1><span>🧮</span> Scientific Calculator</h1>
+    </div>
+    <div class="calc-wrap">
+      <div class="calc-display">
+        <div class="calc-expr" id="expr"></div>
+        <div class="calc-val" id="disp">0</div>
+      </div>
+      <div class="calc-keys">
+        <button class="key fn" onclick="fn('sin(')">sin</button>
+        <button class="key fn" onclick="fn('cos(')">cos</button>
+        <button class="key fn" onclick="fn('tan(')">tan</button>
+        <button class="key fn" onclick="fn('log10(')">log</button>
+        <button class="key fn" onclick="fn('ln(')">ln</button>
+
+        <button class="key fn" onclick="fn('sqrt(')">√</button>
+        <button class="key fn" onclick="fn('cbrt(')">∛</button>
+        <button class="key fn" onclick="fn('^')">xʸ</button>
+        <button class="key fn" onclick="fn('pi')">π</button>
+        <button class="key fn" onclick="fn('e')">e</button>
+
+        <button class="key fn" onclick="fn('abs(')">|x|</button>
+        <button class="key fn" onclick="fn('(')">( </button>
+        <button class="key fn" onclick="fn(')')"> )</button>
+        <button class="key fn" onclick="fn('%')">%</button>
+        <button class="key clr" onclick="backspace()">⌫</button>
+
+        <button class="key" onclick="fn('7')">7</button>
+        <button class="key" onclick="fn('8')">8</button>
+        <button class="key" onclick="fn('9')">9</button>
+        <button class="key op" onclick="fn('/')">÷</button>
+        <button class="key clr" onclick="clear()">C</button>
+
+        <button class="key" onclick="fn('4')">4</button>
+        <button class="key" onclick="fn('5')">5</button>
+        <button class="key" onclick="fn('6')">6</button>
+        <button class="key op" onclick="fn('*')">×</button>
+        <button class="key fn" onclick="fn('!')">n!</button>
+
+        <button class="key" onclick="fn('1')">1</button>
+        <button class="key" onclick="fn('2')">2</button>
+        <button class="key" onclick="fn('3')">3</button>
+        <button class="key op" onclick="fn('-')">−</button>
+        <button class="key fn" onclick="fn('1/')">1/x</button>
+
+        <button class="key" onclick="fn('0')" style="grid-column:span 2">0</button>
+        <button class="key" onclick="fn('.')">.</button>
+        <button class="key op" onclick="fn('+')">+</button>
+        <button class="key eq" onclick="evaluate()">=</button>
+      </div>
+    </div>
+  </main>
+  <script>
+    let expr = '';
+    const disp = document.getElementById('disp');
+    const exprEl = document.getElementById('expr');
+
+    function fn(v) {
+      if (v === 'pi') expr += Math.PI;
+      else if (v === 'e') expr += Math.E;
+      else if (v === '1/') expr = '1/(' + expr + ')';
+      else expr += v;
+      disp.textContent = expr || '0';
+      exprEl.textContent = '';
+    }
+
+    function clear() { expr = ''; disp.textContent = '0'; exprEl.textContent = ''; }
+
+    function backspace() { expr = expr.slice(0, -1); disp.textContent = expr || '0'; }
+
+    function factorial(n) { if(n<0) return NaN; if(n===0||n===1) return 1; return n*factorial(n-1); }
+
+    function evaluate() {
+      try {
+        let e = expr
+          .replace(/\^/g, '**')
+          .replace(/ln\(/g, 'Math.log(')
+          .replace(/log10\(/g, 'Math.log10(')
+          .replace(/sin\(/g, 'Math.sin(')
+          .replace(/cos\(/g, 'Math.cos(')
+          .replace(/tan\(/g, 'Math.tan(')
+          .replace(/sqrt\(/g, 'Math.sqrt(')
+          .replace(/cbrt\(/g, 'Math.cbrt(')
+          .replace(/abs\(/g, 'Math.abs(')
+          .replace(/(\d+)!/g, (_, n) => factorial(parseInt(n)));
+
+        // Safe eval using Function
+        const result = Function('"use strict"; return (' + e + ')')();
+        exprEl.textContent = expr + ' =';
+        expr = '' + +result.toPrecision(12);
+        disp.textContent = expr;
+      } catch(e) {
+        disp.textContent = 'Error';
+        expr = '';
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key >= '0' && e.key <= '9') fn(e.key);
+      else if (['+','-','*','/','.','^','(',')','%'].includes(e.key)) fn(e.key);
+      else if (e.key === 'Enter' || e.key === '=') evaluate();
+      else if (e.key === 'Backspace') backspace();
+      else if (e.key === 'Escape') clear();
+    });
+  </script>
+</body>
+</html>

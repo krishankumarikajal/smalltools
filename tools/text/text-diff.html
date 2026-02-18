@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Diff — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .diff-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:600px){ .diff-cols { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Text Diff</div>
+    <div class="tool-header">
+      <h1><span>🔀</span> Text Diff</h1>
+      <p>Compare two texts line-by-line and highlight differences.</p>
+    </div>
+    <div class="card">
+      <div class="diff-cols">
+        <div class="form-row" style="margin:0">
+          <label>Original Text</label>
+          <textarea id="textA" rows="10" placeholder="Paste original text..."></textarea>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Modified Text</label>
+          <textarea id="textB" rows="10" placeholder="Paste modified text..."></textarea>
+        </div>
+      </div>
+      <div class="btn-group"><button class="btn btn-primary" onclick="diff()">Compare</button><button class="btn btn-ghost" onclick="clearAll()">Clear</button></div>
+      <div id="result" style="margin-top:18px"></div>
+    </div>
+  </main>
+  <script>
+    function diff() {
+      const a = document.getElementById('textA').value.split('\n');
+      const b = document.getElementById('textB').value.split('\n');
+      let html = '<div class="diff-output">';
+      const max = Math.max(a.length, b.length);
+      for (let i = 0; i < max; i++) {
+        const la = a[i] ?? null, lb = b[i] ?? null;
+        if (la === lb) {
+          html += `<span class="diff-line diff-same">&nbsp;&nbsp;${esc(la ?? '')}</span>`;
+        } else {
+          if (la !== null) html += `<span class="diff-line diff-remove">- ${esc(la)}</span>`;
+          if (lb !== null) html += `<span class="diff-line diff-add">+ ${esc(lb)}</span>`;
+        }
+      }
+      html += '</div>';
+      document.getElementById('result').innerHTML = '<label>Diff Result</label>' + html;
+    }
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function clearAll() { document.getElementById('textA').value=''; document.getElementById('textB').value=''; document.getElementById('result').innerHTML=''; }
+  </script>
+</body>
+</html>

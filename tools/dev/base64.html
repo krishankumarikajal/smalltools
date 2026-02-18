@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base64 Encode / Decode — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / Base64</div>
+    <div class="tool-header">
+      <h1><span>🔐</span> Base64 Encode / Decode</h1>
+      <p>Encode or decode Base64 strings. Supports UTF-8 text.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input</label><textarea id="input" rows="7" placeholder="Paste text or Base64 here..."></textarea></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="encode()">Encode → Base64</button>
+        <button class="btn btn-ghost" onclick="decode()">Decode ← Base64</button>
+        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer"><input type="checkbox" id="urlSafe"> URL-safe (- / _)</label>
+      </div>
+      <div id="err" style="font-size:13px;color:#dc2626;margin-top:6px"></div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="7" readonly style="font-family:'SF Mono','Fira Code',monospace"></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    function toB64(str){
+      try{return btoa(unescape(encodeURIComponent(str)));}
+      catch(e){return btoa(str);}
+    }
+    function fromB64(str){
+      try{return decodeURIComponent(escape(atob(str)));}
+      catch(e){return atob(str);}
+    }
+    function encode(){
+      document.getElementById('err').textContent='';
+      try{
+        let r=toB64(document.getElementById('input').value);
+        if(document.getElementById('urlSafe').checked) r=r.replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+        document.getElementById('output').value=r;
+      }catch(e){document.getElementById('err').textContent='Encode error: '+e.message;}
+    }
+    function decode(){
+      document.getElementById('err').textContent='';
+      try{
+        let inp=document.getElementById('input').value.trim();
+        if(document.getElementById('urlSafe').checked) inp=inp.replace(/-/g,'+').replace(/_/g,'/');
+        document.getElementById('output').value=fromB64(inp);
+      }catch(e){document.getElementById('err').textContent='Invalid Base64: '+e.message;}
+    }
+    function clearAll(){document.getElementById('input').value='';document.getElementById('output').value='';document.getElementById('err').textContent='';}
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Sorter — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Text Sorter</div>
+    <div class="tool-header">
+      <h1><span>🗂️</span> Text Sorter</h1>
+      <p>Sort lines alphabetically, numerically, by length, or randomly.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input (one item per line)</label><textarea id="input" rows="10" placeholder="banana&#10;apple&#10;cherry&#10;date"></textarea></div>
+      <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="reverse"> Reverse order</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="trimLines" checked> Trim whitespace</label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer"><input type="checkbox" id="ignoreCase" checked> Ignore case</label>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="sort('alpha')">A → Z</button>
+        <button class="btn btn-ghost" onclick="sort('num')">Numeric</button>
+        <button class="btn btn-ghost" onclick="sort('len')">By Length</button>
+        <button class="btn btn-ghost" onclick="sort('random')">Shuffle</button>
+      </div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="10" readonly></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    function sort(mode) {
+      let lines = document.getElementById('input').value.split('\n');
+      if (document.getElementById('trimLines').checked) lines = lines.map(l => l.trim());
+      const ci = document.getElementById('ignoreCase').checked;
+      const rev = document.getElementById('reverse').checked;
+      if (mode === 'alpha') lines.sort((a,b) => (ci ? a.toLowerCase() : a).localeCompare(ci ? b.toLowerCase() : b));
+      else if (mode === 'num') lines.sort((a,b) => parseFloat(a) - parseFloat(b));
+      else if (mode === 'len') lines.sort((a,b) => a.length - b.length);
+      else for (let i = lines.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [lines[i],lines[j]]=[lines[j],lines[i]]; }
+      if (rev && mode !== 'random') lines.reverse();
+      document.getElementById('output').value = lines.join('\n');
+    }
+  </script>
+</body>
+</html>

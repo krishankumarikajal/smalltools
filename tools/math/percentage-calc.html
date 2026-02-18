@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Percentage Calculator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .calc-section { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+    .calc-section:last-child { border-bottom: none; margin-bottom: 0; }
+    .calc-section h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing: .5px; }
+    .inline-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .inline-row input { width: 90px; }
+    .inline-row span { font-size: 15px; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Percentage Calculator</div>
+    <div class="tool-header">
+      <h1><span>💯</span> Percentage Calculator</h1>
+      <p>Multiple percentage calculators in one place.</p>
+    </div>
+    <div class="card">
+
+      <div class="calc-section">
+        <h3>What is X% of Y?</h3>
+        <div class="inline-row">
+          <input type="number" id="p1x" placeholder="X%" oninput="calc1()">
+          <span>% of</span>
+          <input type="number" id="p1y" placeholder="Y" oninput="calc1()">
+          <span>=</span>
+          <span id="r1" style="font-size:20px;font-weight:800;color:var(--primary)">—</span>
+        </div>
+      </div>
+
+      <div class="calc-section">
+        <h3>X is what % of Y?</h3>
+        <div class="inline-row">
+          <input type="number" id="p2x" placeholder="X" oninput="calc2()">
+          <span>is what % of</span>
+          <input type="number" id="p2y" placeholder="Y" oninput="calc2()">
+          <span>=</span>
+          <span id="r2" style="font-size:20px;font-weight:800;color:var(--primary)">—</span>
+        </div>
+      </div>
+
+      <div class="calc-section">
+        <h3>Percentage change (old → new)</h3>
+        <div class="inline-row">
+          <input type="number" id="p3o" placeholder="Old value" oninput="calc3()">
+          <span>→</span>
+          <input type="number" id="p3n" placeholder="New value" oninput="calc3()">
+          <span>=</span>
+          <span id="r3" style="font-size:20px;font-weight:800;color:var(--primary)">—</span>
+        </div>
+      </div>
+
+      <div class="calc-section">
+        <h3>Increase / Decrease a value by %</h3>
+        <div class="inline-row">
+          <input type="number" id="p4v" placeholder="Value" oninput="calc4()">
+          <select id="p4dir" onchange="calc4()" style="width:auto">
+            <option value="1">increased by</option>
+            <option value="-1">decreased by</option>
+          </select>
+          <input type="number" id="p4p" placeholder="%" oninput="calc4()">
+          <span>% =</span>
+          <span id="r4" style="font-size:20px;font-weight:800;color:var(--primary)">—</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <script>
+    const n = id => parseFloat(document.getElementById(id).value);
+    const fmt = v => isNaN(v) || !isFinite(v) ? '—' : +v.toFixed(4) + '';
+    function calc1() { document.getElementById('r1').textContent = fmt(n('p1x')/100 * n('p1y')); }
+    function calc2() { document.getElementById('r2').textContent = fmt(n('p2x')/n('p2y')*100) + '%'; }
+    function calc3() { const pct = (n('p3n')-n('p3o'))/n('p3o')*100; const r = document.getElementById('r3'); r.textContent = fmt(pct)+'%'; r.style.color = pct < 0 ? '#dc2626' : 'var(--primary)'; }
+    function calc4() { document.getElementById('r4').textContent = fmt(n('p4v') * (1 + parseInt(document.getElementById('p4dir').value) * n('p4p')/100)); }
+  </script>
+</body>
+</html>

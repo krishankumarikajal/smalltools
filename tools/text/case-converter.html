@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Converter — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Case Converter</div>
+    <div class="tool-header">
+      <h1><span>🔡</span> Case Converter</h1>
+      <p>Convert text to various case formats instantly.</p>
+    </div>
+    <div class="card">
+      <div class="form-row">
+        <label>Input Text</label>
+        <textarea id="input" placeholder="Type or paste text here..." rows="6"></textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-ghost" onclick="convert('upper')">UPPER CASE</button>
+        <button class="btn btn-ghost" onclick="convert('lower')">lower case</button>
+        <button class="btn btn-ghost" onclick="convert('title')">Title Case</button>
+        <button class="btn btn-ghost" onclick="convert('sentence')">Sentence case</button>
+        <button class="btn btn-ghost" onclick="convert('camel')">camelCase</button>
+        <button class="btn btn-ghost" onclick="convert('pascal')">PascalCase</button>
+        <button class="btn btn-ghost" onclick="convert('snake')">snake_case</button>
+        <button class="btn btn-ghost" onclick="convert('kebab')">kebab-case</button>
+        <button class="btn btn-ghost" onclick="convert('constant')">CONSTANT_CASE</button>
+      </div>
+      <div class="form-row" style="margin-top:18px">
+        <label>Output</label>
+        <div class="output-box">
+          <textarea id="output" rows="6" readonly></textarea>
+          <button class="btn btn-copy copy-btn-abs" onclick="copyOut()">Copy</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    function convert(type) {
+      const t = document.getElementById('input').value;
+      let r = '';
+      const words = t.trim().split(/[\s_\-]+/);
+      switch(type) {
+        case 'upper': r = t.toUpperCase(); break;
+        case 'lower': r = t.toLowerCase(); break;
+        case 'title': r = t.toLowerCase().replace(/(?:^|\s)\S/g, c => c.toUpperCase()); break;
+        case 'sentence': r = t.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase()); break;
+        case 'camel': r = words.map((w,i) => i === 0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase()).join(''); break;
+        case 'pascal': r = words.map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(''); break;
+        case 'snake': r = words.map(w => w.toLowerCase()).join('_'); break;
+        case 'kebab': r = words.map(w => w.toLowerCase()).join('-'); break;
+        case 'constant': r = words.map(w => w.toUpperCase()).join('_'); break;
+      }
+      document.getElementById('output').value = r;
+    }
+    function copyOut() {
+      const out = document.getElementById('output');
+      navigator.clipboard.writeText(out.value).catch(() => { out.select(); document.execCommand('copy'); });
+    }
+  </script>
+</body>
+</html>

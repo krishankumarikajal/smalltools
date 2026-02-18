@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UUID Generator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / UUID Generator</div>
+    <div class="tool-header">
+      <h1><span>🪪</span> UUID Generator</h1>
+      <p>Generate RFC 4122 v4 UUIDs using the browser's crypto API.</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+        <div class="form-row" style="margin:0">
+          <label>Count</label>
+          <input type="number" id="count" value="5" min="1" max="100" style="width:80px">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;font-size:13px"><input type="checkbox" id="upper"> Uppercase</label>
+          <label style="display:flex;align-items:center;gap:5px;font-weight:400;cursor:pointer;font-size:13px"><input type="checkbox" id="noDash"> No dashes</label>
+        </div>
+        <button class="btn btn-primary" onclick="generate()">Generate</button>
+      </div>
+      <div id="output" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </main>
+  <script>
+    function uuidv4(){return([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));}
+    function generate(){
+      const n=Math.min(100,Math.max(1,parseInt(document.getElementById('count').value)||1));
+      const uc=document.getElementById('upper').checked;
+      const nd=document.getElementById('noDash').checked;
+      const container=document.getElementById('output');
+      container.innerHTML='';
+      for(let i=0;i<n;i++){
+        let id=uuidv4();
+        if(uc)id=id.toUpperCase();
+        if(nd)id=id.replace(/-/g,'');
+        const div=document.createElement('div');
+        div.style.cssText='display:flex;gap:8px;align-items:center';
+        div.innerHTML=`<code style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:9px 13px;font-size:13px;font-family:'SF Mono','Fira Code',monospace">${id}</code><button class="btn btn-copy" onclick="navigator.clipboard.writeText('${id}')">Copy</button>`;
+        container.appendChild(div);
+      }
+    }
+    document.addEventListener('DOMContentLoaded',generate);
+    generate();
+  </script>
+</body>
+</html>

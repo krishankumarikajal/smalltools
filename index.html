@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmallTools — Free Online Tools</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo">Small<span>Tools</span></a>
+      <p class="tagline">Fast, free, no-login tools for everyday tasks</p>
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="Search tools..." autocomplete="off" spellcheck="false">
+        <span class="search-icon">&#128269;</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="category-tabs" id="categoryTabs">
+      <button class="tab active" data-cat="all">All</button>
+      <button class="tab" data-cat="text">Text</button>
+      <button class="tab" data-cat="math">Math</button>
+      <button class="tab" data-cat="dev">Dev</button>
+      <button class="tab" data-cat="color">Color</button>
+    </div>
+
+    <div class="tools-grid" id="toolsGrid"></div>
+    <div class="no-results hidden" id="noResults">No tools found. Try a different search.</div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>SmallTools &mdash; All tools run in your browser. No data is sent to any server.</p>
+    </div>
+  </footer>
+
+  <script src="assets/tools.js"></script>
+  <script src="assets/main.js"></script>
+</body>
+</html>

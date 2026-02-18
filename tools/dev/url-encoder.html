@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Encoder / Decoder — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / URL Encoder</div>
+    <div class="tool-header">
+      <h1><span>🔗</span> URL Encoder / Decoder</h1>
+      <p>Encode or decode URL components and full URLs.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input</label><textarea id="input" rows="5" placeholder="https://example.com/path?q=hello world&foo=bar&baz"></textarea></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <select id="mode">
+          <option value="component">encodeURIComponent (query params)</option>
+          <option value="full">encodeURI (full URL)</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="encode()">Encode</button>
+        <button class="btn btn-ghost" onclick="decode()">Decode</button>
+        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+      </div>
+      <div id="err" style="font-size:13px;color:#dc2626;margin-top:6px"></div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="5" readonly style="font-family:'SF Mono','Fira Code',monospace;word-break:break-all"></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    function encode(){
+      document.getElementById('err').textContent='';
+      const v=document.getElementById('input').value;
+      try{document.getElementById('output').value=document.getElementById('mode').value==='component'?encodeURIComponent(v):encodeURI(v);}
+      catch(e){document.getElementById('err').textContent=e.message;}
+    }
+    function decode(){
+      document.getElementById('err').textContent='';
+      const v=document.getElementById('input').value;
+      try{document.getElementById('output').value=document.getElementById('mode').value==='component'?decodeURIComponent(v):decodeURI(v);}
+      catch(e){document.getElementById('err').textContent='Malformed URI: '+e.message;}
+    }
+    function clearAll(){document.getElementById('input').value='';document.getElementById('output').value='';}
+  </script>
+</body>
+</html>

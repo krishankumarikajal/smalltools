@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Reverser — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Text Reverser</div>
+    <div class="tool-header">
+      <h1><span>↩️</span> Text Reverser</h1>
+      <p>Reverse entire text, each word, or each line.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input</label><textarea id="input" rows="6" placeholder="Type text to reverse..."></textarea></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="rev('text')">Reverse Text</button>
+        <button class="btn btn-ghost" onclick="rev('words')">Reverse Words</button>
+        <button class="btn btn-ghost" onclick="rev('lines')">Reverse Lines</button>
+        <button class="btn btn-ghost" onclick="rev('eachword')">Reverse Each Word</button>
+      </div>
+      <div class="form-row" style="margin-top:16px"><label>Output</label><div class="output-box"><textarea id="output" rows="6" readonly></textarea><button class="btn btn-copy copy-btn-abs" onclick="navigator.clipboard.writeText(document.getElementById('output').value)">Copy</button></div></div>
+    </div>
+  </main>
+  <script>
+    function rev(mode) {
+      const t = document.getElementById('input').value;
+      let r;
+      if (mode === 'text') r = [...t].reverse().join('');
+      else if (mode === 'words') r = t.split(' ').reverse().join(' ');
+      else if (mode === 'lines') r = t.split('\n').reverse().join('\n');
+      else r = t.split(' ').map(w => [...w].reverse().join('')).join(' ');
+      document.getElementById('output').value = r;
+    }
+  </script>
+</body>
+</html>

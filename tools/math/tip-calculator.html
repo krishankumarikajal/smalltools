@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tip Calculator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>.tip-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}.tip-btn{padding:7px 16px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-weight:600;font-size:13px;background:#fff;transition:all .15s}.tip-btn.active,.tip-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}.out-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Tip Calculator</div>
+    <div class="tool-header">
+      <h1><span>🍽️</span> Tip Calculator</h1>
+      <p>Calculate tip amount and split the bill between people.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Bill Amount</label><input type="number" id="bill" placeholder="0.00" oninput="calc()"></div>
+      <div class="form-row">
+        <label>Tip %</label>
+        <div class="tip-btns" id="tipBtns">
+          <button class="tip-btn" onclick="setTip(10)">10%</button>
+          <button class="tip-btn active" onclick="setTip(15)">15%</button>
+          <button class="tip-btn" onclick="setTip(18)">18%</button>
+          <button class="tip-btn" onclick="setTip(20)">20%</button>
+          <button class="tip-btn" onclick="setTip(25)">25%</button>
+        </div>
+        <input type="number" id="tipPct" value="15" min="0" max="100" oninput="clearActive();calc()" style="margin-top:6px">
+      </div>
+      <div class="form-row"><label>Number of People</label><input type="number" id="people" value="1" min="1" oninput="calc()"></div>
+      <div class="out-grid">
+        <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Tip Amount</div><div class="result-value" id="tipAmt">—</div></div>
+        <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Total Bill</div><div class="result-value" id="total">—</div></div>
+        <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Tip per Person</div><div class="result-value" id="tipPP">—</div></div>
+        <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Total per Person</div><div class="result-value" id="totalPP">—</div></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    function setTip(v) {
+      document.getElementById('tipPct').value = v;
+      document.querySelectorAll('.tip-btn').forEach(b => b.classList.toggle('active', parseInt(b.textContent)===v));
+      calc();
+    }
+    function clearActive() { document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active')); }
+    function fmt(v) { return isNaN(v) ? '—' : v.toFixed(2); }
+    function calc() {
+      const bill = parseFloat(document.getElementById('bill').value)||0;
+      const pct = parseFloat(document.getElementById('tipPct').value)||0;
+      const p = Math.max(1, parseInt(document.getElementById('people').value)||1);
+      const tip = bill*pct/100;
+      const total = bill+tip;
+      document.getElementById('tipAmt').textContent = fmt(tip);
+      document.getElementById('total').textContent = fmt(total);
+      document.getElementById('tipPP').textContent = fmt(tip/p);
+      document.getElementById('totalPP').textContent = fmt(total/p);
+    }
+    calc();
+  </script>
+</body>
+</html>

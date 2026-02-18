@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hash Generator — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / Hash Generator</div>
+    <div class="tool-header">
+      <h1><span>🔑</span> Hash Generator</h1>
+      <p>Generate SHA-1, SHA-256, SHA-384, SHA-512 hashes using the browser's Web Crypto API.</p>
+    </div>
+    <div class="card">
+      <div class="form-row"><label>Input Text</label><textarea id="input" rows="5" placeholder="Type text to hash..." oninput="autoHash()"></textarea></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="hashAll()">Generate All Hashes</button>
+        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;cursor:pointer"><input type="checkbox" id="uppercase"> Uppercase</label>
+      </div>
+      <div id="results" style="margin-top:16px"></div>
+    </div>
+  </main>
+  <script>
+    const ALGOS = ['SHA-1','SHA-256','SHA-384','SHA-512'];
+    async function hash(algo, text) {
+      const enc = new TextEncoder();
+      const buf = await crypto.subtle.digest(algo, enc.encode(text));
+      const arr = Array.from(new Uint8Array(buf));
+      return arr.map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    async function hashAll() {
+      const t = document.getElementById('input').value;
+      const uc = document.getElementById('uppercase').checked;
+      const res = document.getElementById('results');
+      res.innerHTML = '<div style="color:var(--text-2);font-size:13px">Computing...</div>';
+      const rows = await Promise.all(ALGOS.map(async a => {
+        const h = await hash(a, t);
+        const display = uc ? h.toUpperCase() : h;
+        return `<div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:4px">${a} (${h.length/2*8} bit)</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <code style="flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;font-size:12px;word-break:break-all;font-family:'SF Mono','Fira Code',monospace">${display}</code>
+            <button class="btn btn-copy" onclick="navigator.clipboard.writeText('${display}')">Copy</button>
+          </div>
+        </div>`;
+      }));
+      res.innerHTML = rows.join('');
+    }
+    let timer;
+    function autoHash(){clearTimeout(timer);timer=setTimeout(hashAll,300);}
+    function clearAll(){document.getElementById('input').value='';document.getElementById('results').innerHTML='';}
+  </script>
+</body>
+</html>

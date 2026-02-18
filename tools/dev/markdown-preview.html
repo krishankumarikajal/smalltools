@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Preview — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .md-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;min-height:500px}
+    @media(max-width:700px){.md-wrap{grid-template-columns:1fr}}
+    .md-editor{border:none;border-right:1.5px solid var(--border);border-radius:0;font-family:"SF Mono","Fira Code",monospace;font-size:13px;resize:none;min-height:500px;background:#fff}
+    .md-preview{padding:20px 24px;overflow-y:auto;font-size:15px;line-height:1.7;background:#fff}
+    .md-preview h1,.md-preview h2,.md-preview h3{margin:1em 0 .4em;font-weight:700}
+    .md-preview h1{font-size:1.8em;border-bottom:2px solid var(--border);padding-bottom:.3em}
+    .md-preview h2{font-size:1.4em;border-bottom:1px solid var(--border);padding-bottom:.2em}
+    .md-preview h3{font-size:1.15em}
+    .md-preview p{margin:.6em 0}
+    .md-preview ul,.md-preview ol{margin:.6em 0;padding-left:1.8em}
+    .md-preview li{margin:.2em 0}
+    .md-preview code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:"SF Mono","Fira Code",monospace;font-size:13px}
+    .md-preview pre{background:#1e293b;color:#f1f5f9;padding:14px;border-radius:7px;overflow-x:auto;font-size:13px}
+    .md-preview pre code{background:none;padding:0;color:inherit}
+    .md-preview blockquote{border-left:4px solid var(--primary);margin:.6em 0;padding:.2em .8em;color:var(--text-2);background:var(--primary-light);border-radius:0 4px 4px 0}
+    .md-preview table{border-collapse:collapse;width:100%;margin:.6em 0}
+    .md-preview th,.md-preview td{border:1px solid var(--border);padding:7px 12px}
+    .md-preview th{background:var(--bg);font-weight:700}
+    .md-preview a{color:var(--primary);text-decoration:underline}
+    .md-preview hr{border:none;border-top:2px solid var(--border);margin:1em 0}
+    .tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--bg)}
+    .tab-bar button{padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--text-2)}
+    .tab-bar button.active{color:var(--primary);border-bottom:2px solid var(--primary);margin-bottom:-1px;background:#fff}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page" style="max-width:1000px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / Markdown Preview</div>
+    <div class="tool-header">
+      <h1><span>✍️</span> Markdown Preview</h1>
+      <p>Write Markdown on the left, see the rendered HTML on the right.</p>
+    </div>
+    <div class="tab-bar">
+      <span style="padding:8px 16px;font-size:13px;font-weight:700;color:var(--text-2)">Editor</span>
+      <span style="flex:1"></span>
+      <button onclick="copyHtml()">Copy HTML</button>
+      <button onclick="clearAll()">Clear</button>
+    </div>
+    <div class="md-wrap">
+      <textarea class="md-editor" id="editor" oninput="render()" placeholder="# Hello World&#10;&#10;Write **Markdown** here..."></textarea>
+      <div class="md-preview" id="preview"></div>
+    </div>
+  </main>
+  <script>
+    // Simple Markdown parser (no external deps)
+    function parseMD(md){
+      let h=md
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') // escape HTML
+        // Fenced code blocks
+        .replace(/```(\w*)\n([\s\S]*?)```/gm,(_,lang,code)=>`<pre><code>${code.trimEnd()}</code></pre>`)
+        // Headers
+        .replace(/^#{6}\s(.+)$/gm,'<h6>$1</h6>')
+        .replace(/^#{5}\s(.+)$/gm,'<h5>$1</h5>')
+        .replace(/^#{4}\s(.+)$/gm,'<h4>$1</h4>')
+        .replace(/^###\s(.+)$/gm,'<h3>$1</h3>')
+        .replace(/^##\s(.+)$/gm,'<h2>$1</h2>')
+        .replace(/^#\s(.+)$/gm,'<h1>$1</h1>')
+        // HR
+        .replace(/^(-{3,}|\*{3,}|_{3,})$/gm,'<hr>')
+        // Blockquote
+        .replace(/^&gt;\s(.+)$/gm,'<blockquote>$1</blockquote>')
+        // Bold+italic
+        .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
+        .replace(/___(.+?)___/g,'<strong><em>$1</em></strong>')
+        // Bold
+        .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+        .replace(/__(.+?)__/g,'<strong>$1</strong>')
+        // Italic
+        .replace(/\*(.+?)\*/g,'<em>$1</em>')
+        .replace(/_(.+?)_/g,'<em>$1</em>')
+        // Inline code
+        .replace(/`([^`]+)`/g,'<code>$1</code>')
+        // Strikethrough
+        .replace(/~~(.+?)~~/g,'<del>$1</del>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>')
+        // Images
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img alt="$1" src="$2" style="max-width:100%">')
+        // Unordered list
+        .replace(/^\s*[-*+]\s+(.+)$/gm,'<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>')
+        // Ordered list
+        .replace(/^\d+\.\s+(.+)$/gm,'<li>$1</li>')
+        // Paragraphs — wrap double newlines
+        .replace(/\n\n(?!<)/g,'</p><p>')
+        .replace(/\n(?!<)/g,'<br>');
+      return '<p>' + h + '</p>';
+    }
+    function render(){document.getElementById('preview').innerHTML=parseMD(document.getElementById('editor').value);}
+    function copyHtml(){navigator.clipboard.writeText(document.getElementById('preview').innerHTML);}
+    function clearAll(){document.getElementById('editor').value='';render();}
+
+    document.getElementById('editor').value=`# Markdown Preview\n\nWrite your **markdown** here and see it rendered *live*.\n\n## Features\n\n- Bold, italic, strikethrough\n- \`inline code\` and fenced code blocks\n- [Links](https://example.com)\n- Blockquotes, lists, headings\n\n> This is a blockquote\n\n\`\`\`js\nconst greet = name => \`Hello, \${name}!\`;\nconsole.log(greet('World'));\n\`\`\``;
+    render();
+  </script>
+</body>
+</html>

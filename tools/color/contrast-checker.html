@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrast Checker — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <style>
+    .preview-box{padding:24px;border-radius:10px;border:1.5px solid var(--border);margin:14px 0;text-align:center;transition:all .1s}
+    .preview-box .sample-large{font-size:24px;font-weight:700;margin-bottom:6px}
+    .preview-box .sample-small{font-size:14px}
+    .wcag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+    .wcag-badge{padding:12px;border-radius:8px;text-align:center;border:1.5px solid var(--border)}
+    .wcag-badge.pass{background:#dcfce7;border-color:#86efac;color:#166534}
+    .wcag-badge.fail{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+    .wcag-badge .level{font-size:12px;font-weight:700;margin-bottom:2px;opacity:.7}
+    .wcag-badge .status{font-size:16px;font-weight:800}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Color</a> / Contrast Checker</div>
+    <div class="tool-header">
+      <h1><span>👁️</span> Contrast Checker</h1>
+      <p>Check WCAG 2.1 contrast ratio between text and background colors.</p>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-row" style="margin:0">
+          <label>Text Color</label>
+          <div style="display:flex;gap:8px">
+            <input type="color" id="fg" value="#111827" oninput="update()" style="width:44px;height:42px;border-radius:7px;border:1.5px solid var(--border);cursor:pointer;padding:2px">
+            <input type="text" id="fgHex" value="#111827" oninput="fromHex('fg')" style="font-family:monospace">
+          </div>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Background Color</label>
+          <div style="display:flex;gap:8px">
+            <input type="color" id="bg" value="#ffffff" oninput="update()" style="width:44px;height:42px;border-radius:7px;border:1.5px solid var(--border);cursor:pointer;padding:2px">
+            <input type="text" id="bgHex" value="#ffffff" oninput="fromHex('bg')" style="font-family:monospace">
+          </div>
+        </div>
+      </div>
+      <div class="preview-box" id="previewBox">
+        <div class="sample-large">The quick brown fox jumps over the lazy dog</div>
+        <div class="sample-small">Small text: The quick brown fox (14px)</div>
+      </div>
+      <div class="result-row">
+        <div><div class="result-label">Contrast Ratio</div><div class="result-value" id="ratio">—</div></div>
+        <button class="btn btn-ghost" onclick="swap()">Swap colors</button>
+      </div>
+      <div class="wcag-grid" id="wcagGrid"></div>
+    </div>
+  </main>
+  <script>
+    function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+    function relativeLum(r,g,b){const c=[r,g,b].map(v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];}
+    function contrastRatio(l1,l2){const [lo,hi]=l1<l2?[l1,l2]:[l2,l1];return(hi+0.05)/(lo+0.05);}
+
+    function update(){
+      const fg=document.getElementById('fg').value, bg=document.getElementById('bg').value;
+      document.getElementById('fgHex').value=fg;
+      document.getElementById('bgHex').value=bg;
+      const box=document.getElementById('previewBox');
+      box.style.background=bg; box.style.color=fg;
+      const lr=relativeLum(...hexToRgb(fg)), lb=relativeLum(...hexToRgb(bg));
+      const ratio=contrastRatio(lr,lb);
+      document.getElementById('ratio').textContent=ratio.toFixed(2)+':1';
+      const checks=[
+        {label:'AA Normal Text',req:4.5,size:'normal'},
+        {label:'AA Large Text',req:3,size:'large'},
+        {label:'AAA Normal Text',req:7,size:'normal'},
+        {label:'AAA Large Text',req:4.5,size:'large'},
+      ];
+      document.getElementById('wcagGrid').innerHTML=checks.map(c=>{
+        const pass=ratio>=c.req;
+        return `<div class="wcag-badge ${pass?'pass':'fail'}"><div class="level">${c.label}</div><div class="status">${pass?'Pass ✓':'Fail ✗'}</div><div style="font-size:11px;margin-top:2px">Min: ${c.req}:1</div></div>`;
+      }).join('');
+    }
+    function fromHex(which){
+      const v=document.getElementById(which+'Hex').value.trim();
+      if(/^#[0-9a-fA-F]{6}$/.test(v)){document.getElementById(which).value=v;update();}
+    }
+    function swap(){const fg=document.getElementById('fg').value,bg=document.getElementById('bg').value;document.getElementById('fg').value=bg;document.getElementById('bg').value=fg;update();}
+    update();
+  </script>
+</body>
+</html>
