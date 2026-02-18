@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text to Table — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .result-table-wrap{overflow:auto;max-height:420px;border:1.5px solid var(--border);border-radius:8px;margin-top:14px}
+    .result-table{border-collapse:collapse;font-size:13px;width:100%}
+    .result-table th{background:var(--surface-2,var(--surface));border:1px solid var(--border);padding:7px 14px;text-align:left;font-weight:700;white-space:nowrap;position:sticky;top:0}
+    .result-table td{border:1px solid var(--border);padding:6px 14px;white-space:nowrap}
+    .result-table tr:nth-child(even) td{background:var(--surface-2,var(--bg))}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / Text to Table</div>
+    <div class="tool-header">
+      <h1>📋 Text to Table Converter</h1>
+      <p>Convert tab-separated, comma-separated, or space-separated text into a formatted HTML or Markdown table.</p>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px">
+        <div class="form-row" style="margin:0">
+          <label>Input Delimiter</label>
+          <select id="delimiter">
+            <option value="tab">Tab (TSV)</option>
+            <option value="comma">Comma (CSV)</option>
+            <option value="pipe">Pipe (|)</option>
+            <option value="semicolon">Semicolon (;)</option>
+            <option value="space">Space</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin:0">
+          <label>Output Format</label>
+          <select id="outputFormat" onchange="convert()">
+            <option value="html">HTML Table</option>
+            <option value="markdown">Markdown Table</option>
+            <option value="ascii">ASCII Table</option>
+          </select>
+        </div>
+      </div>
+      <label class="check-label"><input type="checkbox" id="hasHeader" checked onchange="convert()"> First row is header</label>
+
+      <div class="form-row" style="margin-top:12px">
+        <label>Input Text</label>
+        <textarea id="inputText" rows="8" placeholder="Name&#9;Age&#9;City&#10;Alice&#9;30&#9;New York&#10;Bob&#9;25&#9;London" oninput="convert()"></textarea>
+      </div>
+
+      <div id="previewSection" style="display:none;margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="margin:0">Preview</label>
+          <button class="btn btn-copy" id="copyOutputBtn" onclick="copyOutput()">Copy Output</button>
+        </div>
+        <div class="result-table-wrap" id="tablePreview"></div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Code Output</label>
+          <div class="output-box">
+            <textarea id="codeOutput" rows="8" readonly style="font-family:'SF Mono','Fira Code',monospace;font-size:12px"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+    function getDelimiter() {
+      const d = document.getElementById('delimiter').value;
+      return {tab:'\t', comma:',', pipe:'|', semicolon:';', space:' '}[d];
+    }
+
+    function parseInput() {
+      const raw = document.getElementById('inputText').value.trim();
+      if (!raw) return null;
+      const delim = getDelimiter();
+      return raw.split('\n').map(line => line.split(delim).map(c => c.trim()));
+    }
+
+    function convert() {
+      const data = parseInput();
+      if (!data || data.length === 0) { document.getElementById('previewSection').style.display='none'; return; }
+      document.getElementById('previewSection').style.display = '';
+
+      const hasHeader = document.getElementById('hasHeader').checked;
+      const headers = hasHeader ? data[0] : null;
+      const rows = hasHeader ? data.slice(1) : data;
+      const format = document.getElementById('outputFormat').value;
+
+      // HTML preview
+      const maxCols = Math.max(...data.map(r => r.length));
+      let html = '<table class="result-table">';
+      if (hasHeader && headers) html += '<thead><tr>' + headers.map(h => `<th>${esc(h)}</th>`).join('') + '</tr></thead>';
+      html += '<tbody>' + rows.map(r => '<tr>' + Array.from({length:maxCols}, (_,i) => `<td>${esc(r[i]||'')}</td>`).join('') + '</tr>').join('') + '</tbody></table>';
+      document.getElementById('tablePreview').innerHTML = html;
+
+      // Code output
+      let code = '';
+      if (format === 'html') {
+        code = '<table>\n';
+        if (hasHeader && headers) code += '  <thead>\n    <tr>\n' + headers.map(h => `      <th>${h}</th>`).join('\n') + '\n    </tr>\n  </thead>\n';
+        code += '  <tbody>\n';
+        rows.forEach(r => { code += '    <tr>\n' + Array.from({length:maxCols},(_,i) => `      <td>${r[i]||''}</td>`).join('\n') + '\n    </tr>\n'; });
+        code += '  </tbody>\n</table>';
+      } else if (format === 'markdown') {
+        const cols = Math.max(...data.map(r => r.length));
+        const colWidths = Array.from({length:cols}, (_,i) => Math.max(...data.map(r => (r[i]||'').length), hasHeader ? 3 : 0));
+        const pad = (s,w) => s.padEnd(w);
+        const row2md = r => '| ' + Array.from({length:cols},(_,i) => pad(r[i]||'',colWidths[i])).join(' | ') + ' |';
+        if (hasHeader && headers) {
+          code += row2md(headers) + '\n';
+          code += '| ' + colWidths.map(w => '-'.repeat(w)).join(' | ') + ' |\n';
+        }
+        code += rows.map(r => row2md(r)).join('\n');
+      } else if (format === 'ascii') {
+        const cols = Math.max(...data.map(r => r.length));
+        const colWidths = Array.from({length:cols}, (_,i) => Math.max(...data.map(r => (r[i]||'').length), 3)+2);
+        const sep = '+' + colWidths.map(w => '-'.repeat(w)).join('+') + '+';
+        const rowLine = r => '|' + Array.from({length:cols},(_,i) => (' '+(r[i]||'')).padEnd(colWidths[i])).join('|') + '|';
+        code += sep + '\n';
+        if (hasHeader && headers) { code += rowLine(headers) + '\n' + sep + '\n'; }
+        code += rows.map(r => rowLine(r) + '\n' + sep).join('\n');
+      }
+      document.getElementById('codeOutput').value = code;
+    }
+
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function copyOutput() {
+      copyText(document.getElementById('codeOutput').value, document.getElementById('copyOutputBtn'));
+    }
+
+    // Sample data
+    document.getElementById('inputText').value = 'Name\tAge\tCity\tSalary\nAlice\t30\tNew York\t$85,000\nBob\t25\tLondon\t$72,000\nCharlie\t35\tParis\t$91,000';
+    convert();
+  </script>
+</body>
+</html>

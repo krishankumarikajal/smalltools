@@ -35,4 +35,11 @@ const TOOLS = [
   { id: "gradient-generator", cat: "color", icon: "🌈", name: "Gradient Generator",     desc: "Create CSS linear gradients with live preview and code.",     url: "tools/color/gradient-generator.html" },
   { id: "contrast-checker",   cat: "color", icon: "👁️", name: "Contrast Checker",       desc: "Check WCAG contrast ratio between text and background.",      url: "tools/color/contrast-checker.html" },
   { id: "palette-generator",  cat: "color", icon: "🖌️", name: "Color Palette Generator","desc": "Generate harmonious color palettes from a base color.",      url: "tools/color/palette-generator.html" },
+
+  // OFFICE & DOCUMENTS
+  { id: "csv-viewer",         cat: "office", icon: "📊", name: "CSV Viewer & Editor",     desc: "View, filter, edit, and download CSV files as a table.",       url: "tools/office/csv-viewer.html" },
+  { id: "text-to-table",      cat: "office", icon: "📋", name: "Text to Table",            desc: "Convert tab/comma/pipe text to HTML, Markdown, or ASCII table.", url: "tools/office/text-to-table.html" },
+  { id: "markdown-to-word",   cat: "office", icon: "📝", name: "Markdown to Word",         desc: "Convert Markdown to a styled doc preview. Export as .doc.",    url: "tools/office/markdown-to-word.html" },
+  { id: "presentation-outline", cat: "office", icon: "📊", name: "Presentation Outline",  desc: "Plan presentation slides with titles and notes. Export HTML.", url: "tools/office/presentation-outline.html" },
+  { id: "pdf-metadata",       cat: "office", icon: "📄", name: "PDF Metadata Viewer",      desc: "View file info, page count, and extract text from PDFs.",      url: "tools/office/pdf-metadata.html" },
 ];

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scientific Calculator — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
     .calc-wrap{max-width:400px}
     .calc-display{background:#1e293b;color:#f1f5f9;padding:16px 20px;border-radius:10px 10px 0 0;text-align:right;min-height:80px}
@@ -22,7 +23,10 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
     <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Scientific Calculator</div>
@@ -131,5 +135,7 @@
       else if (e.key === 'Escape') clear();
     });
   </script>
+  <script src="../../assets/common.js"></script>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
 </body>
 </html>

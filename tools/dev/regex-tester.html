@@ -1,86 +1,230 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Regex Tester — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
-    .highlighted{background:#fef9c3;padding:14px;border:1.5px solid #fde68a;border-radius:7px;line-height:1.8;font-size:14px;min-height:80px;word-break:break-all;white-space:pre-wrap}
-    .match-chip{display:inline-block;background:#fef08a;border:1px solid #fbbf24;border-radius:3px;padding:0 2px;cursor:pointer;font-weight:600}
+    .highlighted{background:var(--surface-2,#fef9c3);padding:14px;border:1.5px solid var(--border);border-radius:7px;line-height:1.8;font-size:14px;min-height:80px;word-break:break-all;white-space:pre-wrap}
+    .match-chip{display:inline-block;background:#fef08a;border:1px solid #fbbf24;border-radius:3px;padding:0 2px;cursor:pointer;font-weight:600;color:#92400e}
+    [data-theme="dark"] .match-chip{background:#422006;border-color:#92400e;color:#fbbf24}
     .flags-row{display:flex;gap:12px;flex-wrap:wrap}
     .flags-row label{display:flex;align-items:center;gap:5px;font-weight:400;font-size:13px;cursor:pointer}
     .match-list{margin-top:10px;font-family:monospace;font-size:13px}
-    .match-item{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:5px 10px;margin-bottom:4px}
+    .match-item{background:var(--surface-2,var(--bg));border:1px solid var(--border);border-radius:5px;padding:5px 10px;margin-bottom:4px}
+    .explain-box{background:var(--surface-2,#f0f9ff);border:1.5px solid var(--border);border-radius:7px;padding:12px;margin-top:12px;font-size:13px;line-height:1.8}
+    .exp-token{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:3px 8px;margin:2px;font-family:monospace;font-size:12px}
+    .exp-code{font-weight:700;color:var(--primary);font-family:monospace}
+    .tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px}
+    .tab-btn{padding:7px 18px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+    .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+    .tab-btn:hover:not(.active){color:var(--text)}
+    .replace-result{background:var(--surface-2,#f0fff4);border:1.5px solid var(--border);border-radius:7px;padding:12px;min-height:80px;font-size:14px;white-space:pre-wrap;word-break:break-all;line-height:1.8}
   </style>
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
-    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / Regex Tester</div>
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Dev / Regex Tester</div>
     <div class="tool-header">
-      <h1><span>🎯</span> Regex Tester</h1>
-      <p>Test regular expressions with live match highlighting.</p>
+      <h1>🎯 Regex Tester</h1>
+      <p>Test regular expressions with live highlighting, match list, replace mode, and plain-English explanations.</p>
     </div>
     <div class="card">
       <div class="form-row">
         <label>Regular Expression</label>
         <div style="display:flex;gap:8px;align-items:center">
           <span style="font-size:18px;color:var(--text-2)">/</span>
-          <input type="text" id="pattern" placeholder="(\w+)\s(\w+)" oninput="test()" style="flex:1">
+          <input type="text" id="pattern" placeholder="(\w+)\s(\w+)" oninput="run()" style="flex:1">
           <span style="font-size:18px;color:var(--text-2)">/</span>
         </div>
       </div>
       <div class="flags-row" style="margin-bottom:14px">
-        <label><input type="checkbox" id="fg" checked onchange="test()"> g (global)</label>
-        <label><input type="checkbox" id="fi" onchange="test()"> i (case insensitive)</label>
-        <label><input type="checkbox" id="fm" onchange="test()"> m (multiline)</label>
-        <label><input type="checkbox" id="fs" onchange="test()"> s (dotAll)</label>
+        <label><input type="checkbox" id="fg" checked onchange="run()"> g (global)</label>
+        <label><input type="checkbox" id="fi" onchange="run()"> i (case insensitive)</label>
+        <label><input type="checkbox" id="fm" onchange="run()"> m (multiline)</label>
+        <label><input type="checkbox" id="fs" onchange="run()"> s (dotAll)</label>
       </div>
-      <div class="form-row"><label>Test String</label><textarea id="testStr" rows="5" placeholder="Enter text to test against..." oninput="test()">Hello World foo bar 123</textarea></div>
+      <div class="form-row"><label>Test String</label><textarea id="testStr" rows="5" placeholder="Enter text to test against..." oninput="run()">Hello World foo bar 123</textarea></div>
       <div id="err" style="font-size:13px;color:#dc2626;margin-bottom:6px"></div>
       <div id="info" style="font-size:13px;color:var(--text-2);margin-bottom:10px"></div>
-      <label>Highlighted Matches</label>
-      <div class="highlighted" id="highlighted"></div>
-      <div id="matchList" class="match-list"></div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-match" onclick="switchTab('match')">Matches</button>
+        <button class="tab-btn" id="tab-replace" onclick="switchTab('replace')">Replace</button>
+        <button class="tab-btn" id="tab-explain" onclick="switchTab('explain')">Explain</button>
+      </div>
+
+      <div id="pane-match">
+        <label>Highlighted Matches</label>
+        <div class="highlighted" id="highlighted"></div>
+        <div id="matchList" class="match-list"></div>
+      </div>
+
+      <div id="pane-replace" style="display:none">
+        <div class="form-row"><label>Replace With <span style="font-weight:400;color:var(--text-2);font-size:11px">(use $1, $2 for capture groups)</span></label>
+          <input type="text" id="replaceWith" placeholder="$1" oninput="run()"></div>
+        <label style="margin-top:10px">Result</label>
+        <div class="replace-result" id="replaceResult"></div>
+        <div style="margin-top:8px">
+          <button class="btn btn-ghost" id="copyReplaceBtn" onclick="copyReplace()">Copy Result</button>
+        </div>
+      </div>
+
+      <div id="pane-explain" style="display:none">
+        <div class="explain-box" id="explainBox"><span style="color:var(--text-2)">Enter a regex pattern to see an explanation.</span></div>
+      </div>
     </div>
   </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
   <script>
-    function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-    function test(){
-      const pat=document.getElementById('pattern').value;
-      const str=document.getElementById('testStr').value;
-      document.getElementById('err').textContent='';
-      document.getElementById('highlighted').textContent='';
-      document.getElementById('matchList').innerHTML='';
-      document.getElementById('info').textContent='';
-      if(!pat){document.getElementById('highlighted').textContent=str;return;}
-      try{
-        let flags='';
-        if(document.getElementById('fg').checked)flags+='g';
-        if(document.getElementById('fi').checked)flags+='i';
-        if(document.getElementById('fm').checked)flags+='m';
-        if(document.getElementById('fs').checked)flags+='s';
-        const re=new RegExp(pat,flags);
-        const matches=[...str.matchAll(new RegExp(pat,flags.includes('g')?flags:flags+'g'))];
-        document.getElementById('info').textContent=matches.length+' match(es) found';
-        // Highlight
-        let html='', last=0;
-        matches.forEach(m=>{
-          html+=esc(str.slice(last,m.index));
-          html+=`<span class="match-chip" title="Match at index ${m.index}">${esc(m[0])}</span>`;
-          last=m.index+m[0].length;
-        });
-        html+=esc(str.slice(last));
-        document.getElementById('highlighted').innerHTML=html;
-        // List
-        const list=matches.map((m,i)=>`<div class="match-item"><strong>#${i+1}</strong> index:${m.index} &nbsp; "${esc(m[0])}"${m.length>1?' groups: ['+m.slice(1).map(g=>g===undefined?'<em>undefined</em>':'"'+esc(g)+'"').join(', ')+']':''}</div>`).join('');
-        document.getElementById('matchList').innerHTML=list;
-      }catch(e){document.getElementById('err').textContent='Regex error: '+e.message;}
+    let currentTab = 'match';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      ['match','replace','explain'].forEach(t => {
+        document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+        document.getElementById('pane-'+t).style.display = t===tab ? '' : 'none';
+      });
+      run();
     }
-    test();
+
+    function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function getFlags() {
+      let f = '';
+      if (document.getElementById('fg').checked) f += 'g';
+      if (document.getElementById('fi').checked) f += 'i';
+      if (document.getElementById('fm').checked) f += 'm';
+      if (document.getElementById('fs').checked) f += 's';
+      return f;
+    }
+
+    function run() {
+      const pat = document.getElementById('pattern').value;
+      const str = document.getElementById('testStr').value;
+      document.getElementById('err').textContent = '';
+      document.getElementById('highlighted').textContent = '';
+      document.getElementById('matchList').innerHTML = '';
+      document.getElementById('info').textContent = '';
+
+      if (!pat) {
+        document.getElementById('highlighted').textContent = str;
+        if (currentTab === 'explain') renderExplain('');
+        if (currentTab === 'replace') document.getElementById('replaceResult').textContent = str;
+        return;
+      }
+
+      try {
+        const flags = getFlags();
+        const globalFlags = flags.includes('g') ? flags : flags + 'g';
+        const re = new RegExp(pat, globalFlags);
+        const matches = [...str.matchAll(re)];
+        document.getElementById('info').textContent = matches.length + ' match(es) found';
+
+        // Highlighted
+        let html = '', last = 0;
+        matches.forEach(m => {
+          html += esc(str.slice(last, m.index));
+          html += `<span class="match-chip" title="Match at index ${m.index}">${esc(m[0])}</span>`;
+          last = m.index + m[0].length;
+        });
+        html += esc(str.slice(last));
+        document.getElementById('highlighted').innerHTML = html;
+
+        // Match list
+        const list = matches.map((m,i) => `<div class="match-item"><strong>#${i+1}</strong> index:${m.index} &nbsp; "<strong>${esc(m[0])}</strong>"${m.length > 1 ? ' groups: [' + m.slice(1).map(g => g === undefined ? '<em>undefined</em>' : '"' + esc(g) + '"').join(', ') + ']' : ''}</div>`).join('');
+        document.getElementById('matchList').innerHTML = list;
+
+        // Replace
+        if (currentTab === 'replace') {
+          const replaceWith = document.getElementById('replaceWith').value;
+          try {
+            const result = str.replace(new RegExp(pat, flags.includes('g') ? flags : flags + 'g'), replaceWith);
+            document.getElementById('replaceResult').textContent = result;
+          } catch(e) {
+            document.getElementById('replaceResult').textContent = 'Replace error: ' + e.message;
+          }
+        }
+
+        // Explain
+        if (currentTab === 'explain') renderExplain(pat);
+
+      } catch(e) {
+        document.getElementById('err').textContent = 'Regex error: ' + e.message;
+      }
+    }
+
+    function renderExplain(pat) {
+      const box = document.getElementById('explainBox');
+      if (!pat) { box.innerHTML = '<span style="color:var(--text-2)">Enter a regex pattern to see an explanation.</span>'; return; }
+      const tokens = explainRegex(pat);
+      box.innerHTML = tokens.map(t => `<div class="exp-token"><span class="exp-code">${esc(t.code)}</span><span>${t.desc}</span></div>`).join('');
+    }
+
+    function explainRegex(pat) {
+      const rules = [
+        [/^\^/, '^', 'Start of string/line'],
+        [/^\$/, '$', 'End of string/line'],
+        [/^\\./, null, s => ({ code: s.slice(0,2), desc: {
+          '\\d':'Any digit (0-9)', '\\D':'Any non-digit', '\\w':'Any word char (a-z, A-Z, 0-9, _)',
+          '\\W':'Any non-word char', '\\s':'Any whitespace', '\\S':'Any non-whitespace',
+          '\\b':'Word boundary', '\\B':'Non-word boundary', '\\n':'Newline', '\\t':'Tab',
+          '\\r':'Carriage return', '\\.':'Literal dot'
+        }[s.slice(0,2)] || 'Escaped: ' + s[1] })],
+        [/^\[(\^?)([^\]]*)\]/, null, (s, m) => ({ code: s, desc: (m[1] ? 'Any char NOT in: ' : 'Any char in: ') + m[2] })],
+        [/^\((?:\?:)?/, null, s => ({ code: s, desc: s.includes('?:') ? 'Non-capturing group start' : 'Capture group start' })],
+        [/^\)/, ')', 'Group end'],
+        [/^\{(\d+),(\d+)\}/, null, (s,m) => ({ code: s, desc: `Between ${m[1]} and ${m[2]} times` })],
+        [/^\{(\d+),\}/, null, (s,m) => ({ code: s, desc: `At least ${m[1]} times` })],
+        [/^\{(\d+)\}/, null, (s,m) => ({ code: s, desc: `Exactly ${m[1]} times` })],
+        [/^\*\?/, '*?', 'Zero or more times (lazy)'],
+        [/^\+\?/, '+?', 'One or more times (lazy)'],
+        [/^\?\?/, '??', 'Zero or one time (lazy)'],
+        [/^\*/, '*', 'Zero or more times (greedy)'],
+        [/^\+/, '+', 'One or more times (greedy)'],
+        [/^\?/, '?', 'Zero or one time'],
+        [/^\|/, '|', 'OR — match either side'],
+        [/^\./, '.', 'Any character (except newline)'],
+        [/^[a-zA-Z0-9]/, null, s => ({ code: s[0], desc: `Literal "${s[0]}"` })],
+      ];
+
+      const tokens = [];
+      let remaining = pat;
+      let safety = 0;
+      while (remaining && safety++ < 200) {
+        let matched = false;
+        for (const [regex, fixed, handler] of rules) {
+          const m = remaining.match(regex);
+          if (m) {
+            if (fixed !== null) {
+              tokens.push({ code: fixed, desc: typeof handler === 'string' ? handler : '' });
+            } else {
+              tokens.push(handler(m[0], m));
+            }
+            remaining = remaining.slice(m[0].length);
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) { tokens.push({ code: remaining[0], desc: `Literal "${remaining[0]}"` }); remaining = remaining.slice(1); }
+      }
+      return tokens;
+    }
+
+    function copyReplace() {
+      copyText(document.getElementById('replaceResult').textContent, document.getElementById('copyReplaceBtn'));
+    }
+
+    run();
   </script>
 </body>
 </html>

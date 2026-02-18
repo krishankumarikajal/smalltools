@@ -1,68 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Case Converter — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
-    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Case Converter</div>
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Text / Case Converter</div>
     <div class="tool-header">
-      <h1><span>🔡</span> Case Converter</h1>
-      <p>Convert text to various case formats instantly.</p>
+      <h1>🔡 Case Converter</h1>
+      <p>Convert text to any case format instantly. Smart acronym handling included.</p>
     </div>
     <div class="card">
       <div class="form-row">
         <label>Input Text</label>
-        <textarea id="input" placeholder="Type or paste text here..." rows="6"></textarea>
+        <textarea id="input" placeholder="Type or paste text here..." rows="6" oninput="liveConvert()"></textarea>
       </div>
-      <div class="btn-group">
-        <button class="btn btn-ghost" onclick="convert('upper')">UPPER CASE</button>
-        <button class="btn btn-ghost" onclick="convert('lower')">lower case</button>
-        <button class="btn btn-ghost" onclick="convert('title')">Title Case</button>
-        <button class="btn btn-ghost" onclick="convert('sentence')">Sentence case</button>
+      <div id="charCount" style="font-size:12px;color:var(--text-2);margin-bottom:10px;text-align:right">0 characters</div>
+      <div class="btn-group" style="margin-top:0">
+        <button class="btn btn-ghost" onclick="convert('upper')">UPPER</button>
+        <button class="btn btn-ghost" onclick="convert('lower')">lower</button>
+        <button class="btn btn-ghost" onclick="convert('title')">Title</button>
+        <button class="btn btn-ghost" onclick="convert('sentence')">Sentence</button>
         <button class="btn btn-ghost" onclick="convert('camel')">camelCase</button>
         <button class="btn btn-ghost" onclick="convert('pascal')">PascalCase</button>
         <button class="btn btn-ghost" onclick="convert('snake')">snake_case</button>
         <button class="btn btn-ghost" onclick="convert('kebab')">kebab-case</button>
         <button class="btn btn-ghost" onclick="convert('constant')">CONSTANT_CASE</button>
+        <button class="btn btn-ghost" onclick="convert('screaming_kebab')">SCREAMING-KEBAB</button>
+        <button class="btn btn-ghost" onclick="convert('dot')">dot.case</button>
+        <button class="btn btn-ghost" onclick="convert('alternate')">aLtErNaTe</button>
       </div>
-      <div class="form-row" style="margin-top:18px">
-        <label>Output</label>
+      <div class="form-row" style="margin-top:16px">
+        <label>Output <span id="activeCase" style="font-weight:400;color:var(--text-2);margin-left:6px;font-size:11px"></span></label>
         <div class="output-box">
           <textarea id="output" rows="6" readonly></textarea>
-          <button class="btn btn-copy copy-btn-abs" onclick="copyOut()">Copy</button>
+          <button class="btn btn-copy copy-btn-abs" id="copyBtn" onclick="copyOut()">Copy</button>
         </div>
       </div>
+      <label class="check-label" style="margin-top:8px">
+        <input type="checkbox" id="smartAcro" checked> Smart acronyms (HTML, API, CSS stay uppercase in title/sentence case)
+      </label>
     </div>
   </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
   <script>
+    const ACRONYMS = new Set(['HTML','CSS','JS','API','URL','HTTP','HTTPS','ID','UI','UX','DB','SQL','XML','JSON','PDF','SEO','CMS','SDK','CLI','AI','ML','PHP','ASP','JSX','TSX','GPU','CPU','RAM','SSD']);
+    let lastType = loadPref('case-last','upper');
+
+    document.getElementById('input').addEventListener('input', () => {
+      const v = document.getElementById('input').value;
+      document.getElementById('charCount').textContent = v.length + ' characters';
+    });
+
+    function splitWords(text) {
+      return text.trim().split(/[\s_\-\.]+/).filter(Boolean);
+    }
+
     function convert(type) {
+      lastType = type;
+      savePref('case-last', type);
       const t = document.getElementById('input').value;
+      const smart = document.getElementById('smartAcro').checked;
+      const words = splitWords(t);
       let r = '';
-      const words = t.trim().split(/[\s_\-]+/);
       switch(type) {
         case 'upper': r = t.toUpperCase(); break;
         case 'lower': r = t.toLowerCase(); break;
-        case 'title': r = t.toLowerCase().replace(/(?:^|\s)\S/g, c => c.toUpperCase()); break;
-        case 'sentence': r = t.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase()); break;
-        case 'camel': r = words.map((w,i) => i === 0 ? w.toLowerCase() : w[0].toUpperCase() + w.slice(1).toLowerCase()).join(''); break;
-        case 'pascal': r = words.map(w => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(''); break;
-        case 'snake': r = words.map(w => w.toLowerCase()).join('_'); break;
-        case 'kebab': r = words.map(w => w.toLowerCase()).join('-'); break;
-        case 'constant': r = words.map(w => w.toUpperCase()).join('_'); break;
+        case 'title':
+          r = t.toLowerCase().replace(/(?:^|\s)\S/g, c => c.toUpperCase());
+          if (smart) r = r.replace(/\b([A-Z][a-z]*)\b/g, w => ACRONYMS.has(w.toUpperCase()) ? w.toUpperCase() : w);
+          break;
+        case 'sentence':
+          r = t.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase());
+          if (smart) r = r.replace(/\b([A-Z][a-z]*)\b/g, w => ACRONYMS.has(w.toUpperCase()) ? w.toUpperCase() : w);
+          break;
+        case 'camel':
+          r = words.map((w,i) => i===0 ? w.toLowerCase() : w[0].toUpperCase()+w.slice(1).toLowerCase()).join('');
+          break;
+        case 'pascal':
+          r = words.map(w => (w[0]||'').toUpperCase()+w.slice(1).toLowerCase()).join('');
+          break;
+        case 'snake':
+          r = words.map(w => w.toLowerCase()).join('_');
+          break;
+        case 'kebab':
+          r = words.map(w => w.toLowerCase()).join('-');
+          break;
+        case 'constant':
+          r = words.map(w => w.toUpperCase()).join('_');
+          break;
+        case 'screaming_kebab':
+          r = words.map(w => w.toUpperCase()).join('-');
+          break;
+        case 'dot':
+          r = words.map(w => w.toLowerCase()).join('.');
+          break;
+        case 'alternate':
+          r = [...t].map((c,i) => i%2===0 ? c.toLowerCase() : c.toUpperCase()).join('');
+          break;
       }
       document.getElementById('output').value = r;
+      document.getElementById('activeCase').textContent = '→ ' + type;
+
+      // highlight active button
+      document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('btn-primary'));
+      event && event.target && event.target.classList.add('btn-primary');
     }
-    function copyOut() {
-      const out = document.getElementById('output');
-      navigator.clipboard.writeText(out.value).catch(() => { out.select(); document.execCommand('copy'); });
+
+    function liveConvert() {
+      if (document.getElementById('output').value || document.getElementById('input').value) convert(lastType);
+      const v = document.getElementById('input').value;
+      document.getElementById('charCount').textContent = v.length + ' characters';
     }
+
+    function copyOut() { copyText(document.getElementById('output').value, document.getElementById('copyBtn')); }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('charCount').textContent = '0 characters';
+    });
   </script>
 </body>
 </html>

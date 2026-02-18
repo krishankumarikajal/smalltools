@@ -1,27 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Color Picker — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
     .big-picker{width:100%;height:200px;border:none;border-radius:10px;cursor:pointer;background:none;padding:0;display:block}
     .color-values{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:14px}
     .val-box{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
     .val-label{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
     .val-text{font-size:14px;font-weight:600;font-family:"SF Mono","Fira Code",monospace}
+    .cb-swatch{width:100%;height:56px;border-radius:8px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;transition:transform .15s}
+    .cb-swatch:hover{transform:scale(1.02)}
+    .export-pre{font-family:'SF Mono','Fira Code',monospace;font-size:12px;background:var(--surface-2,#1e293b);color:#f1f5f9;padding:12px;border-radius:7px;white-space:pre;overflow:auto;margin-top:6px}
+    .tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:14px}
+    .tab-btn{padding:7px 18px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+    .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary)}
+    .tab-btn:hover:not(.active){color:var(--text)}
   </style>
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
-    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Color</a> / Color Picker</div>
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Color / Color Picker</div>
     <div class="tool-header">
-      <h1><span>🎨</span> Color Picker</h1>
-      <p>Pick a color and get HEX, RGB, HSL, and HSV values instantly.</p>
+      <h1>🎨 Color Picker</h1>
+      <p>Pick a color and get HEX, RGB, HSL values. Simulate color blindness. Export to CSS or Tailwind.</p>
     </div>
     <div class="card">
       <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
@@ -31,33 +42,165 @@
       </div>
       <div class="color-values" id="vals"></div>
       <div style="margin-top:18px"><label>Recent colors</label><div id="recent" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div></div>
+
+      <div class="tab-bar" style="margin-top:20px">
+        <button class="tab-btn active" id="tab-export" onclick="switchTab('export')">Export</button>
+        <button class="tab-btn" id="tab-cb" onclick="switchTab('cb')">Color Blindness</button>
+      </div>
+
+      <div id="pane-export">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn btn-ghost" onclick="showExport('css')">CSS Variables</button>
+          <button class="btn btn-ghost" onclick="showExport('tailwind')">Tailwind Config</button>
+          <button class="btn btn-ghost" onclick="showExport('scss')">SCSS Variables</button>
+        </div>
+        <div id="exportOut"></div>
+      </div>
+
+      <div id="pane-cb" style="display:none">
+        <p style="font-size:13px;color:var(--text-2);margin-bottom:12px">Simulates how this color appears to people with color vision deficiencies.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px" id="cbGrid"></div>
+      </div>
     </div>
   </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
   <script>
-    const recent=[];
-    function hexToRgb(h){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return{r,g,b};}
-    function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b);let h,s,l=(mx+mn)/2;if(mx===mn){h=s=0;}else{const d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;}return{h:Math.round(h*360),s:Math.round(s*100),l:Math.round(l*100)};}
-    function rgbToHsv(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h,s=mx===0?0:d/mx,v=mx;if(mx===mn)h=0;else{switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}h/=6;}return{h:Math.round(h*360),s:Math.round(s*100),v:Math.round(v*100)};}
-    function update(){
-      const hex=document.getElementById('picker').value;
-      document.getElementById('hexInput').value=hex;
-      document.getElementById('bigSwatch').style.background=hex;
-      const {r,g,b}=hexToRgb(hex);
-      const {h,s,l}=rgbToHsl(r,g,b);
-      const hsv=rgbToHsv(r,g,b);
-      const vals=[
-        {l:'HEX',v:hex.toUpperCase()},
-        {l:'RGB',v:`rgb(${r}, ${g}, ${b})`},
-        {l:'HSL',v:`hsl(${h}, ${s}%, ${l}%)`},
-        {l:'HSV',v:`hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)`},
-        {l:'R',v:r},{l:'G',v:g},{l:'B',v:b},
-        {l:'Luminance',v:((0.299*r+0.587*g+0.114*b)/255*100).toFixed(1)+'%'},
-      ];
-      document.getElementById('vals').innerHTML=vals.map(v=>`<div class="val-box"><div><div class="val-label">${v.l}</div><div class="val-text">${v.v}</div></div><button class="btn btn-copy" onclick="navigator.clipboard.writeText('${v.v.replace(/'/g,'')}')">Copy</button></div>`).join('');
-      if(!recent.includes(hex)){recent.unshift(hex);if(recent.length>10)recent.pop();renderRecent();}
+    const recent = [];
+
+    function hexToRgb(h) {
+      const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
+      return {r, g, b};
     }
-    function renderRecent(){document.getElementById('recent').innerHTML=recent.map(c=>`<div title="${c}" onclick="document.getElementById('picker').value='${c}';update()" style="width:32px;height:32px;border-radius:6px;background:${c};border:1.5px solid var(--border);cursor:pointer"></div>`).join('');}
-    function fromHex(){const h=document.getElementById('hexInput').value.trim();if(/^#[0-9a-fA-F]{6}$/.test(h)){document.getElementById('picker').value=h;update();}}
+    function rgbToHsl(r,g,b) {
+      r/=255; g/=255; b/=255;
+      const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+      let h,s, l=(mx+mn)/2;
+      if (mx===mn) { h=s=0; } else {
+        const d=mx-mn; s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+        switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+        h/=6;
+      }
+      return {h:Math.round(h*360), s:Math.round(s*100), l:Math.round(l*100)};
+    }
+    function rgbToHsv(r,g,b) {
+      r/=255; g/=255; b/=255;
+      const mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
+      let h; const s=mx===0?0:d/mx, v=mx;
+      if (mx===mn) h=0; else {
+        switch(mx){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;case b:h=(r-g)/d+4;break;}
+        h/=6;
+      }
+      return {h:Math.round(h*360), s:Math.round(s*100), v:Math.round(v*100)};
+    }
+
+    // Color blindness simulation matrices
+    const CB_MATRICES = {
+      'Protanopia\n(Red-blind)':   [[0.567,0.433,0],[0.558,0.442,0],[0,0.242,0.758]],
+      'Deuteranopia\n(Green-blind)':[[0.625,0.375,0],[0.7,0.3,0],[0,0.3,0.7]],
+      'Tritanopia\n(Blue-blind)':   [[0.95,0.05,0],[0,0.433,0.567],[0,0.475,0.525]],
+      'Achromatopsia\n(No color)':  [[0.299,0.587,0.114],[0.299,0.587,0.114],[0.299,0.587,0.114]]
+    };
+
+    function simulateCB(r,g,b,matrix) {
+      const rn = Math.round(matrix[0][0]*r + matrix[0][1]*g + matrix[0][2]*b);
+      const gn = Math.round(matrix[1][0]*r + matrix[1][1]*g + matrix[1][2]*b);
+      const bn = Math.round(matrix[2][0]*r + matrix[2][1]*g + matrix[2][2]*b);
+      return {r:Math.min(255,rn), g:Math.min(255,gn), b:Math.min(255,bn)};
+    }
+
+    function rgbToHex(r,g,b) {
+      return '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+    }
+
+    function update() {
+      const hex = document.getElementById('picker').value;
+      document.getElementById('hexInput').value = hex;
+      document.getElementById('bigSwatch').style.background = hex;
+      const {r,g,b} = hexToRgb(hex);
+      const {h,s,l} = rgbToHsl(r,g,b);
+      const hsv = rgbToHsv(r,g,b);
+      const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+      const textColor = lum > 0.5 ? '#000' : '#fff';
+
+      const vals = [
+        {l:'HEX', v:hex.toUpperCase()},
+        {l:'RGB', v:`rgb(${r}, ${g}, ${b})`},
+        {l:'HSL', v:`hsl(${h}, ${s}%, ${l}%)`},
+        {l:'HSV', v:`hsv(${hsv.h}, ${hsv.s}%, ${hsv.v}%)`},
+        {l:'R', v:r}, {l:'G', v:g}, {l:'B', v:b},
+        {l:'Luminance', v:Math.round(lum*100)+'%'},
+      ];
+      document.getElementById('vals').innerHTML = vals.map(v =>
+        `<div class="val-box"><div><div class="val-label">${v.l}</div><div class="val-text">${v.v}</div></div><button class="btn btn-copy btn-sm" id="cp-${v.l}" onclick="copyText('${String(v.v).replace(/'/g,'')}',this)">Copy</button></div>`
+      ).join('');
+
+      if (!recent.includes(hex)) { recent.unshift(hex); if (recent.length > 10) recent.pop(); renderRecent(); }
+
+      // Update color blindness grid if visible
+      if (document.getElementById('pane-cb').style.display !== 'none') renderCB(r,g,b);
+
+      // Update export if visible
+      const exportOut = document.getElementById('exportOut');
+      if (exportOut.dataset.mode) showExport(exportOut.dataset.mode);
+    }
+
+    function renderRecent() {
+      document.getElementById('recent').innerHTML = recent.map(c =>
+        `<div title="${c}" onclick="document.getElementById('picker').value='${c}';update()" style="width:32px;height:32px;border-radius:6px;background:${c};border:1.5px solid var(--border);cursor:pointer"></div>`
+      ).join('');
+    }
+
+    function fromHex() {
+      const h = document.getElementById('hexInput').value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(h)) { document.getElementById('picker').value = h; update(); }
+    }
+
+    function switchTab(tab) {
+      ['export','cb'].forEach(t => {
+        document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+        document.getElementById('pane-'+t).style.display = t===tab ? '' : 'none';
+      });
+      if (tab === 'cb') {
+        const hex = document.getElementById('picker').value;
+        const {r,g,b} = hexToRgb(hex);
+        renderCB(r,g,b);
+      }
+    }
+
+    function renderCB(r,g,b) {
+      const grid = document.getElementById('cbGrid');
+      const originalHex = rgbToHex(r,g,b);
+      const items = [{ name: 'Original', hex: originalHex }];
+      Object.entries(CB_MATRICES).forEach(([name, matrix]) => {
+        const sim = simulateCB(r,g,b,matrix);
+        items.push({ name, hex: rgbToHex(sim.r, sim.g, sim.b) });
+      });
+      grid.innerHTML = items.map(item => {
+        const {r:cr,g:cg,b:cb2} = hexToRgb(item.hex);
+        const lum = (0.299*cr + 0.587*cg + 0.114*cb2)/255;
+        const fg = lum > 0.5 ? '#000' : '#fff';
+        return `<div class="cb-swatch" style="background:${item.hex};color:${fg}" title="Click to copy ${item.hex}" onclick="copyText('${item.hex}',this)">${item.name.replace('\n','<br>')}<br><small style="opacity:.7">${item.hex.toUpperCase()}</small></div>`;
+      }).join('');
+    }
+
+    function showExport(mode) {
+      const hex = document.getElementById('picker').value;
+      const {r,g,b} = hexToRgb(hex);
+      const {h,s,l} = rgbToHsl(r,g,b);
+      const exportOut = document.getElementById('exportOut');
+      exportOut.dataset.mode = mode;
+      let code = '';
+      if (mode === 'css') {
+        code = `:root {\n  --color-primary: ${hex.toUpperCase()};\n  --color-primary-rgb: ${r}, ${g}, ${b};\n  --color-primary-hsl: ${h}, ${s}%, ${l}%;\n}`;
+      } else if (mode === 'tailwind') {
+        code = `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        primary: '${hex.toUpperCase()}',\n      },\n    },\n  },\n};`;
+      } else if (mode === 'scss') {
+        code = `$color-primary: ${hex.toUpperCase()};\n$color-primary-rgb: rgb(${r}, ${g}, ${b});\n$color-primary-hsl: hsl(${h}, ${s}%, ${l}%);`;
+      }
+      exportOut.innerHTML = `<pre class="export-pre">${code}</pre><button class="btn btn-ghost" style="margin-top:8px" id="copyExpBtn" onclick="copyText(document.querySelector('.export-pre').textContent, this)">Copy Code</button>`;
+    }
+
     update();
   </script>
 </body>

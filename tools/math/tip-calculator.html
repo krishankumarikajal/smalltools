@@ -1,64 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tip Calculator — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
-  <style>.tip-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}.tip-btn{padding:7px 16px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-weight:600;font-size:13px;background:#fff;transition:all .15s}.tip-btn.active,.tip-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}.out-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}</style>
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .tip-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .tip-btn{padding:7px 16px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-weight:600;font-size:13px;background:var(--surface);color:var(--text);transition:all .15s}
+    .tip-btn.active,.tip-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .quality-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+    .q-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;background:var(--surface);color:var(--text);transition:all .15s}
+    .q-btn:hover,.q-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .out-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+    .split-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+    .split-row:last-child{border-bottom:none}
+    .split-name{flex:1}
+    .split-pct{width:60px;text-align:center}
+    .split-amt{font-weight:700;color:var(--primary);min-width:70px;text-align:right}
+  </style>
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
-    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Math</a> / Tip Calculator</div>
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Math / Tip Calculator</div>
     <div class="tool-header">
-      <h1><span>🍽️</span> Tip Calculator</h1>
-      <p>Calculate tip amount and split the bill between people.</p>
+      <h1>🍽️ Tip Calculator</h1>
+      <p>Calculate tip, split bills equally or with custom amounts per person.</p>
     </div>
     <div class="card">
-      <div class="form-row"><label>Bill Amount</label><input type="number" id="bill" placeholder="0.00" oninput="calc()"></div>
+      <div class="form-row"><label>Bill Amount ($)</label><input type="number" id="bill" placeholder="0.00" min="0" step="0.01" oninput="calc()"></div>
+
       <div class="form-row">
-        <label>Tip %</label>
-        <div class="tip-btns" id="tipBtns">
-          <button class="tip-btn" onclick="setTip(10)">10%</button>
-          <button class="tip-btn active" onclick="setTip(15)">15%</button>
-          <button class="tip-btn" onclick="setTip(18)">18%</button>
-          <button class="tip-btn" onclick="setTip(20)">20%</button>
-          <button class="tip-btn" onclick="setTip(25)">25%</button>
+        <label>Service Quality (Tip %)</label>
+        <div class="quality-btns">
+          <button class="q-btn" onclick="setQuality(10,'Poor')">10% — Poor</button>
+          <button class="q-btn" onclick="setQuality(15,'Fair')">15% — Fair</button>
+          <button class="q-btn active" onclick="setQuality(18,'Good')">18% — Good</button>
+          <button class="q-btn" onclick="setQuality(20,'Great')">20% — Great</button>
+          <button class="q-btn" onclick="setQuality(25,'Excellent')">25% — Excellent</button>
         </div>
-        <input type="number" id="tipPct" value="15" min="0" max="100" oninput="clearActive();calc()" style="margin-top:6px">
+        <input type="number" id="tipPct" value="18" min="0" max="100" oninput="clearQActive();calc()" style="margin-top:6px" placeholder="Custom %">
       </div>
-      <div class="form-row"><label>Number of People</label><input type="number" id="people" value="1" min="1" oninput="calc()"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row" style="margin:0"><label>Number of People</label><input type="number" id="people" value="2" min="1" max="20" oninput="buildSplitUI()"></div>
+        <div class="form-row" style="margin:0">
+          <label>Rounding</label>
+          <select id="rounding" onchange="calc()">
+            <option value="none">None (exact)</option>
+            <option value="up">Round up to next $1</option>
+            <option value="nearest">Round to nearest $1</option>
+          </select>
+        </div>
+      </div>
+
       <div class="out-grid">
         <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Tip Amount</div><div class="result-value" id="tipAmt">—</div></div>
         <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Total Bill</div><div class="result-value" id="total">—</div></div>
         <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Tip per Person</div><div class="result-value" id="tipPP">—</div></div>
         <div class="result-row" style="flex-direction:column;align-items:flex-start"><div class="result-label">Total per Person</div><div class="result-value" id="totalPP">—</div></div>
       </div>
+
+      <label class="check-label" style="margin-top:14px">
+        <input type="checkbox" id="unequalToggle" onchange="toggleUnequal()"> Unequal split (custom amounts per person)
+      </label>
+
+      <div id="unequalPanel" style="display:none;margin-top:12px">
+        <div class="card-title">Custom Split</div>
+        <div id="splitRows"></div>
+        <div style="font-size:12px;color:var(--text-2);margin-top:8px" id="splitNote"></div>
+      </div>
     </div>
   </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
   <script>
-    function setTip(v) {
+    function setQuality(v, label) {
       document.getElementById('tipPct').value = v;
-      document.querySelectorAll('.tip-btn').forEach(b => b.classList.toggle('active', parseInt(b.textContent)===v));
+      document.querySelectorAll('.q-btn').forEach(b => b.classList.toggle('active', b.textContent.startsWith(v+'%')));
       calc();
     }
-    function clearActive() { document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active')); }
-    function fmt(v) { return isNaN(v) ? '—' : v.toFixed(2); }
+    function clearQActive() { document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active')); }
+
+    function applyRounding(v) {
+      const mode = document.getElementById('rounding').value;
+      if (mode === 'up') return Math.ceil(v);
+      if (mode === 'nearest') return Math.round(v);
+      return v;
+    }
+
+    function fmt(v) { return isNaN(v) ? '—' : '$' + v.toFixed(2); }
+
     function calc() {
-      const bill = parseFloat(document.getElementById('bill').value)||0;
-      const pct = parseFloat(document.getElementById('tipPct').value)||0;
-      const p = Math.max(1, parseInt(document.getElementById('people').value)||1);
-      const tip = bill*pct/100;
-      const total = bill+tip;
+      const bill = parseFloat(document.getElementById('bill').value) || 0;
+      const pct = parseFloat(document.getElementById('tipPct').value) || 0;
+      const p = Math.max(1, parseInt(document.getElementById('people').value) || 1);
+      const tip = applyRounding(bill * pct / 100);
+      const total = bill + tip;
       document.getElementById('tipAmt').textContent = fmt(tip);
       document.getElementById('total').textContent = fmt(total);
-      document.getElementById('tipPP').textContent = fmt(tip/p);
-      document.getElementById('totalPP').textContent = fmt(total/p);
+      document.getElementById('tipPP').textContent = fmt(tip / p);
+      document.getElementById('totalPP').textContent = fmt(total / p);
+      updateSplitTotals();
     }
-    calc();
+
+    function buildSplitUI() {
+      const p = Math.max(1, parseInt(document.getElementById('people').value) || 1);
+      const rows = document.getElementById('splitRows');
+      rows.innerHTML = '';
+      for (let i = 0; i < p; i++) {
+        const row = document.createElement('div');
+        row.className = 'split-row';
+        row.innerHTML = `<span class="split-name">Person ${i+1}</span>
+          <input type="number" class="split-pct" placeholder="%" min="0" max="100" oninput="updateSplitTotals()" style="width:60px;padding:4px 6px;font-size:13px">
+          <span class="split-amt" id="splitAmt${i}">—</span>`;
+        rows.appendChild(row);
+      }
+      updateSplitTotals();
+      calc();
+    }
+
+    function updateSplitTotals() {
+      if (!document.getElementById('unequalToggle').checked) return;
+      const bill = parseFloat(document.getElementById('bill').value) || 0;
+      const pct = parseFloat(document.getElementById('tipPct').value) || 0;
+      const total = bill + applyRounding(bill * pct / 100);
+      const inputs = document.querySelectorAll('#splitRows .split-pct');
+      let sumPct = 0;
+      inputs.forEach(inp => { sumPct += parseFloat(inp.value) || 0; });
+      inputs.forEach((inp, i) => {
+        const share = (parseFloat(inp.value) || 0) / 100 * total;
+        document.getElementById('splitAmt' + i).textContent = isNaN(share) ? '—' : '$' + share.toFixed(2);
+      });
+      const note = document.getElementById('splitNote');
+      if (Math.abs(sumPct - 100) > 0.01 && sumPct > 0) {
+        note.textContent = `Percentages sum to ${sumPct.toFixed(0)}% (should be 100%)`;
+        note.style.color = 'var(--error, #dc2626)';
+      } else {
+        note.textContent = sumPct > 0 ? 'Splits add up to 100%' : 'Enter % for each person (should sum to 100)';
+        note.style.color = 'var(--text-2)';
+      }
+    }
+
+    function toggleUnequal() {
+      const on = document.getElementById('unequalToggle').checked;
+      document.getElementById('unequalPanel').style.display = on ? '' : 'none';
+      if (on) buildSplitUI();
+    }
+
+    buildSplitUI();
   </script>
 </body>
 </html>

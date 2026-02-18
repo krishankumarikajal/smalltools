@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Viewer & Editor — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .csv-table-wrap{overflow:auto;max-height:420px;border:1.5px solid var(--border);border-radius:8px;margin-top:14px}
+    .csv-table{border-collapse:collapse;font-size:13px;width:100%}
+    .csv-table th{background:var(--surface-2,var(--surface));border:1px solid var(--border);padding:7px 12px;text-align:left;font-weight:700;position:sticky;top:0;white-space:nowrap}
+    .csv-table td{border:1px solid var(--border);padding:6px 12px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+    .csv-table tr:nth-child(even) td{background:var(--surface-2,var(--bg))}
+    .csv-table tr:hover td{background:var(--surface)}
+    .csv-table td[contenteditable]{outline:none}
+    .csv-table td[contenteditable]:focus{background:var(--primary-light,#eff6ff);box-shadow:inset 0 0 0 2px var(--primary)}
+    .stats-bar{display:flex;gap:16px;font-size:12px;color:var(--text-2);margin-top:8px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page" style="max-width:1100px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / CSV Viewer</div>
+    <div class="tool-header">
+      <h1>📊 CSV Viewer & Editor</h1>
+      <p>Paste or upload CSV data, view as a table, edit cells, filter rows, and download.</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+        <label class="btn btn-primary" style="cursor:pointer">Upload CSV <input type="file" accept=".csv,.txt" id="fileInput" style="display:none" onchange="loadFile()"></label>
+        <button class="btn btn-ghost" onclick="loadSample()">Load Sample</button>
+        <button class="btn btn-ghost" onclick="downloadCSV()" id="downloadBtn" style="display:none">Download CSV</button>
+        <input type="text" id="filterInput" placeholder="Filter rows..." oninput="filterRows()" style="width:200px">
+      </div>
+      <div class="form-row">
+        <label>CSV Data <span style="font-weight:400;color:var(--text-2);font-size:11px">paste here or upload above</span></label>
+        <textarea id="csvInput" rows="6" placeholder="name,age,city&#10;Alice,30,New York&#10;Bob,25,London" oninput="parseCSV()"></textarea>
+      </div>
+      <div class="stats-bar" id="statsBar"></div>
+      <div class="csv-table-wrap" id="tableWrap" style="display:none">
+        <table class="csv-table" id="csvTable"></table>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+    let headers = [], rows = [], filtered = [];
+
+    function parseCSV() {
+      const raw = document.getElementById('csvInput').value.trim();
+      if (!raw) { document.getElementById('tableWrap').style.display='none'; document.getElementById('statsBar').textContent=''; document.getElementById('downloadBtn').style.display='none'; return; }
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+      headers = splitCSVLine(lines[0]);
+      rows = lines.slice(1).map(l => splitCSVLine(l));
+      filtered = [...rows];
+      renderTable();
+      document.getElementById('downloadBtn').style.display = '';
+    }
+
+    function splitCSVLine(line) {
+      const result = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        if (line[i] === '"') { inQ = !inQ; }
+        else if (line[i] === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+        else { cur += line[i]; }
+      }
+      result.push(cur.trim());
+      return result;
+    }
+
+    function renderTable() {
+      const table = document.getElementById('csvTable');
+      const thead = `<thead><tr>${headers.map((h,i) => `<th style="cursor:pointer" onclick="sortBy(${i})">${h} <span style="opacity:.4;font-size:10px">↕</span></th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${filtered.map((row,ri) =>
+        `<tr>${headers.map((h,ci) => `<td contenteditable="true" onblur="updateCell(${ri},${ci},this)">${row[ci]||''}</td>`).join('')}</tr>`
+      ).join('')}</tbody>`;
+      table.innerHTML = thead + tbody;
+      document.getElementById('tableWrap').style.display = '';
+      document.getElementById('statsBar').innerHTML = `<span>${rows.length} rows</span><span>${headers.length} columns</span>${filtered.length !== rows.length ? `<span>${filtered.length} shown</span>` : ''}`;
+    }
+
+    function filterRows() {
+      const q = document.getElementById('filterInput').value.toLowerCase();
+      filtered = q ? rows.filter(row => row.some(cell => String(cell).toLowerCase().includes(q))) : [...rows];
+      renderTable();
+    }
+
+    let sortDir = 1, sortCol = -1;
+    function sortBy(col) {
+      if (sortCol === col) sortDir = -sortDir; else { sortCol = col; sortDir = 1; }
+      filtered.sort((a,b) => {
+        const av = a[col]||'', bv = b[col]||'';
+        const an = parseFloat(av), bn = parseFloat(bv);
+        if (!isNaN(an) && !isNaN(bn)) return (an-bn)*sortDir;
+        return av.localeCompare(bv)*sortDir;
+      });
+      renderTable();
+    }
+
+    function updateCell(ri, ci, el) {
+      filtered[ri][ci] = el.textContent;
+    }
+
+    function downloadCSV() {
+      const lines = [headers.join(','), ...filtered.map(row => row.map(c => c.includes(',') ? `"${c}"` : c).join(','))];
+      const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'data.csv'; a.click();
+    }
+
+    function loadFile() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => { document.getElementById('csvInput').value = e.target.result; parseCSV(); };
+      reader.readAsText(file);
+    }
+
+    function loadSample() {
+      const sample = `name,age,city,salary\nAlice,30,New York,85000\nBob,25,London,72000\nCharlie,35,Paris,91000\nDiana,28,Tokyo,67000\nEvan,42,Sydney,105000`;
+      document.getElementById('csvInput').value = sample;
+      parseCSV();
+    }
+  </script>
+</body>
+</html>

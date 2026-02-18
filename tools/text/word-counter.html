@@ -1,59 +1,165 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Word Counter — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .wc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:14px}
+    .wc-chip{background:var(--surface-2);border:1.5px solid var(--border);border-radius:9px;padding:12px;text-align:center;transition:background .2s,border-color .2s}
+    .wc-chip:hover{border-color:var(--primary)}
+    .wc-chip .val{font-size:22px;font-weight:800;color:var(--primary);line-height:1}
+    .wc-chip .lbl{font-size:11px;color:var(--text-2);margin-top:4px}
+    .kw-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+    .kw-row:last-child{border-bottom:none}
+    .kw-bar-wrap{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+    .kw-bar{height:100%;background:var(--primary);border-radius:3px;transition:width .3s}
+    .goal-bar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:6px}
+    .goal-fill{height:100%;background:var(--primary);border-radius:999px;transition:width .3s}
+    .goal-fill.done{background:var(--success,#16a34a)}
+  </style>
 </head>
 <body>
   <header class="site-header">
-    <div class="container">
-      <a href="../../index.html" class="logo">Small<span>Tools</span></a>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
     </div>
   </header>
+
   <main class="tool-page">
-    <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Word Counter</div>
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Text / Word Counter</div>
     <div class="tool-header">
-      <h1><span>📝</span> Word Counter</h1>
-      <p>Count words, characters, sentences and paragraphs in real time.</p>
+      <h1>📝 Word Counter</h1>
+      <p>Count words, characters, sentences, paragraphs, reading & speaking time.</p>
+      <div class="kbd-hints">
+        <span class="kbd-hint"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> copy stats</span>
+        <span class="kbd-hint"><kbd>Esc</kbd> clear</span>
+      </div>
     </div>
+
     <div class="card">
       <div class="form-row">
-        <label for="inputText">Paste or type your text</label>
-        <textarea id="inputText" placeholder="Start typing..." rows="10"></textarea>
+        <label>Type or paste your text</label>
+        <textarea id="inputText" placeholder="Start typing..." rows="10" autofocus></textarea>
       </div>
-      <div class="stats-bar" id="statsBar">
-        <div class="stat-chip"><strong id="wc">0</strong> Words</div>
-        <div class="stat-chip"><strong id="cc">0</strong> Characters</div>
-        <div class="stat-chip"><strong id="ccns">0</strong> Chars (no spaces)</div>
-        <div class="stat-chip"><strong id="sc">0</strong> Sentences</div>
-        <div class="stat-chip"><strong id="pc">0</strong> Paragraphs</div>
-        <div class="stat-chip"><strong id="rt">0</strong> min read</div>
+
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px">
+        <label class="check-label"><input type="checkbox" id="goalToggle" onchange="toggleGoal()"> Word goal</label>
+        <input type="number" id="goalInput" placeholder="e.g. 500" min="1" style="width:110px;display:none" oninput="update()">
+        <span id="goalLabel" style="font-size:12px;color:var(--text-2)"></span>
       </div>
+      <div id="goalWrap" style="display:none">
+        <div class="goal-bar"><div class="goal-fill" id="goalFill" style="width:0%"></div></div>
+      </div>
+
+      <div class="wc-grid" id="statsGrid"></div>
+
       <div class="btn-group">
-        <button class="btn btn-ghost" onclick="document.getElementById('inputText').value=''; update()">Clear</button>
+        <button class="btn btn-ghost" id="copyStatsBtn" onclick="copyStats()">Copy Stats</button>
+        <button class="btn btn-ghost" onclick="toggleKw()" id="kwBtn">Show Keywords</button>
+        <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
       </div>
     </div>
+
+    <div class="card" id="kwCard" style="display:none">
+      <div class="card-title">Top Keywords (stop words excluded)</div>
+      <div id="kwList"></div>
+    </div>
   </main>
+
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
   <script>
-    const el = id => document.getElementById(id);
-    function update() {
-      const t = el('inputText').value;
-      const words = t.trim() === '' ? 0 : t.trim().split(/\s+/).filter(Boolean).length;
-      const chars = t.length;
-      const charsNoSpace = t.replace(/\s/g, '').length;
-      const sentences = t.split(/[.!?]+/).filter(s => s.trim()).length;
-      const paras = t.split(/\n\s*\n/).filter(p => p.trim()).length;
-      const readTime = Math.max(1, Math.ceil(words / 200));
-      el('wc').textContent = words;
-      el('cc').textContent = chars;
-      el('ccns').textContent = charsNoSpace;
-      el('sc').textContent = sentences;
-      el('pc').textContent = paras || (t.trim() ? 1 : 0);
-      el('rt').textContent = readTime;
+    const STOP = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','is','was','are','were','be','been','have','has','had','do','does','did','will','would','could','should','may','might','this','that','these','those','it','its','i','you','he','she','we','they','me','him','her','us','them','my','your','his','our','their','what','which','who','not','as','by','from','up','about','so','if','then','than','there','when','where','how','all','no','can','just','also','only','more','than','into','out','no','up','its']);
+
+    const STATS_DEF = [
+      {id:'wc',lbl:'Words'},{id:'cc',lbl:'Characters'},{id:'ccns',lbl:'No-space Chars'},
+      {id:'sc',lbl:'Sentences'},{id:'pc',lbl:'Paragraphs'},{id:'lc',lbl:'Lines'},
+      {id:'rt',lbl:'Min Read'},{id:'st',lbl:'Min Speak'},{id:'pages',lbl:'Pages'}
+    ];
+    document.getElementById('statsGrid').innerHTML = STATS_DEF.map(s =>
+      `<div class="wc-chip"><div class="val" id="${s.id}">0</div><div class="lbl">${s.lbl}</div></div>`
+    ).join('');
+
+    let kwVisible = false;
+    function toggleKw() {
+      kwVisible = !kwVisible;
+      document.getElementById('kwCard').style.display = kwVisible ? '' : 'none';
+      document.getElementById('kwBtn').textContent = kwVisible ? 'Hide Keywords' : 'Show Keywords';
+      if (kwVisible) renderKw();
     }
-    el('inputText').addEventListener('input', update);
+
+    function update() {
+      const t = document.getElementById('inputText').value;
+      const words = t.trim() ? t.trim().split(/\s+/).filter(Boolean) : [];
+      const wc = words.length;
+      const cc = t.length;
+      const ccns = t.replace(/\s/g,'').length;
+      const sc = t.split(/[.!?]+/).filter(s=>s.trim()).length;
+      const pc = t.split(/\n\s*\n/).filter(p=>p.trim()).length || (t.trim()?1:0);
+      const lc = t.split('\n').length;
+      const rt = Math.max(1,Math.ceil(wc/200));
+      const st = Math.max(1,Math.ceil(wc/130));
+      const pages = Math.max(0,Math.ceil(wc/250));
+
+      const vals = {wc,cc,ccns,sc,pc,lc,rt,st,pages};
+      Object.entries(vals).forEach(([k,v]) => {
+        const el = document.getElementById(k);
+        if (el) el.textContent = v.toLocaleString();
+      });
+
+      // Word goal
+      if (document.getElementById('goalToggle').checked) {
+        const goal = parseInt(document.getElementById('goalInput').value)||0;
+        if (goal>0) {
+          const pct = Math.min(100,wc/goal*100);
+          document.getElementById('goalFill').style.width = pct+'%';
+          document.getElementById('goalFill').className = 'goal-fill'+(wc>=goal?' done':'');
+          document.getElementById('goalLabel').textContent = `${wc}/${goal} (${Math.round(pct)}%)`;
+        }
+      }
+      if (kwVisible) renderKw(words);
+    }
+
+    function renderKw(words) {
+      if (!words) {
+        const t = document.getElementById('inputText').value;
+        words = t.trim() ? t.trim().split(/\s+/).filter(Boolean) : [];
+      }
+      const freq = {};
+      words.forEach(w=>{const c=w.toLowerCase().replace(/[^a-z0-9]/g,'');if(c.length>2&&!STOP.has(c))freq[c]=(freq[c]||0)+1;});
+      const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,15);
+      const max = sorted[0]?.[1]||1;
+      document.getElementById('kwList').innerHTML = sorted.length
+        ? sorted.map(([w,n])=>`<div class="kw-row"><span style="min-width:100px;font-weight:600">${w}</span><div class="kw-bar-wrap"><div class="kw-bar" style="width:${n/max*100}%"></div></div><span style="color:var(--text-2);min-width:28px;text-align:right">${n}x</span></div>`).join('')
+        : '<p style="color:var(--text-2);font-size:13px">Type more text to see keywords.</p>';
+    }
+
+    function copyStats() {
+      const t = document.getElementById('inputText').value;
+      const words = t.trim()?t.trim().split(/\s+/).filter(Boolean):[];
+      const s = `Words: ${words.length}\nCharacters: ${t.length}\nChars (no spaces): ${t.replace(/\s/g,'').length}\nSentences: ${t.split(/[.!?]+/).filter(s=>s.trim()).length}\nParagraphs: ${t.split(/\n\s*\n/).filter(p=>p.trim()).length||1}\nLines: ${t.split('\n').length}\nRead time: ${Math.max(1,Math.ceil(words.length/200))} min\nSpeak time: ${Math.max(1,Math.ceil(words.length/130))} min\nPages: ${Math.ceil(words.length/250)||0}`;
+      copyText(s, document.getElementById('copyStatsBtn'));
+    }
+
+    function clearAll() { document.getElementById('inputText').value=''; update(); }
+
+    function toggleGoal() {
+      const on = document.getElementById('goalToggle').checked;
+      document.getElementById('goalInput').style.display = on?'':'none';
+      document.getElementById('goalWrap').style.display  = on?'':'none';
+      if (!on) document.getElementById('goalLabel').textContent='';
+    }
+
+    document.getElementById('inputText').addEventListener('input',update);
+    document.addEventListener('keydown',e=>{
+      if ((e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='C'){e.preventDefault();copyStats();}
+      if (e.key==='Escape'&&document.activeElement===document.getElementById('inputText')) clearAll();
+    });
+    update();
   </script>
 </body>
 </html>

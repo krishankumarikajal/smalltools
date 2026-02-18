@@ -2,9 +2,11 @@
 function renderTools(list) {
   const grid = document.getElementById('toolsGrid');
   const none = document.getElementById('noResults');
+  const qSpan = document.getElementById('noResultsQ');
   grid.innerHTML = '';
   if (!list.length) {
     none.classList.remove('hidden');
+    if (qSpan) qSpan.textContent = searchQ;
     return;
   }
   none.classList.add('hidden');
@@ -50,10 +52,22 @@ document.querySelectorAll('.tab').forEach(btn => {
   });
 });
 
-// Search
+// Search with debounce
+let searchTimer;
 document.getElementById('search').addEventListener('input', e => {
-  searchQ = e.target.value.trim();
-  filter();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQ = e.target.value.trim();
+    filter();
+  }, 120);
+});
+
+// Keyboard: focus search with /
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById('search').focus();
+  }
 });
 
 // Init

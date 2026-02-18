@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Metadata Viewer — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .drop-zone{border:2px dashed var(--border);border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface-2,var(--surface))}
+    .drop-zone:hover,.drop-zone.over{border-color:var(--primary);background:var(--primary-light,#eff6ff)}
+    .meta-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px}
+    .meta-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+    .meta-table td:first-child{font-weight:600;color:var(--text-2);width:160px;white-space:nowrap}
+    .meta-table tr:last-child td{border-bottom:none}
+    .pdf-page-thumb{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:4px;font-size:11px;text-align:center}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / PDF Metadata</div>
+    <div class="tool-header">
+      <h1>📄 PDF Metadata Viewer</h1>
+      <p>View file info, page count, and extract text from PDF files — entirely in your browser.</p>
+    </div>
+    <div class="card">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('pdfInput').click()" ondragover="ev(event)" ondragleave="leave()" ondrop="drop(event)">
+        <div style="font-size:32px;margin-bottom:8px">📄</div>
+        <div style="font-weight:600;margin-bottom:4px">Drop a PDF here or click to browse</div>
+        <div style="font-size:12px;color:var(--text-2)">PDF files only · processed locally · never uploaded</div>
+        <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="loadPDF()">
+      </div>
+
+      <div id="metaResult" style="display:none;margin-top:16px">
+        <div class="card-title" id="fileName"></div>
+        <table class="meta-table" id="metaTable"></table>
+        <div style="margin-top:16px">
+          <div class="card-title">Extracted Text (first page)</div>
+          <div id="extractedText" style="background:var(--surface-2,var(--bg));border:1.5px solid var(--border);border-radius:7px;padding:12px;font-size:13px;max-height:300px;overflow:auto;white-space:pre-wrap;font-family:inherit;line-height:1.7"></div>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn btn-ghost" id="copyTextBtn" onclick="copyText(document.getElementById('extractedText').textContent, this)">Copy Text</button>
+        </div>
+      </div>
+
+      <div id="pdfError" style="color:#dc2626;font-size:13px;margin-top:10px"></div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+    function ev(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('over'); }
+    function leave() { document.getElementById('dropZone').classList.remove('over'); }
+    function drop(e) { e.preventDefault(); leave(); const f = e.dataTransfer.files[0]; if (f) processPDF(f); }
+    function loadPDF() { const f = document.getElementById('pdfInput').files[0]; if (f) processPDF(f); }
+
+    function processPDF(file) {
+      const errEl = document.getElementById('pdfError');
+      errEl.textContent = '';
+      document.getElementById('metaResult').style.display = 'none';
+
+      if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+        errEl.textContent = 'Please select a PDF file.'; return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const bytes = new Uint8Array(e.target.result);
+          const text = new TextDecoder('latin1').decode(bytes);
+
+          // Basic PDF metadata extraction
+          const meta = {};
+          const patterns = {
+            'Title': /\/Title\s*\(([^)]*)\)/,
+            'Author': /\/Author\s*\(([^)]*)\)/,
+            'Subject': /\/Subject\s*\(([^)]*)\)/,
+            'Creator': /\/Creator\s*\(([^)]*)\)/,
+            'Producer': /\/Producer\s*\(([^)]*)\)/,
+            'Creation Date': /\/CreationDate\s*\(([^)]*)\)/,
+            'Modification Date': /\/ModDate\s*\(([^)]*)\)/,
+          };
+          Object.entries(patterns).forEach(([k, re]) => {
+            const m = text.match(re);
+            if (m && m[1].trim()) meta[k] = m[1].trim();
+          });
+
+          // Page count
+          const pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
+          const pageCount = pageMatches ? pageMatches.length : 'Unknown';
+
+          // File size
+          const size = file.size < 1024*1024
+            ? (file.size/1024).toFixed(1) + ' KB'
+            : (file.size/1024/1024).toFixed(2) + ' MB';
+
+          // PDF version
+          const versionMatch = text.match(/^%PDF-(\d+\.\d+)/);
+          const version = versionMatch ? versionMatch[1] : 'Unknown';
+
+          // Display
+          document.getElementById('fileName').textContent = file.name;
+          const rows = [
+            ['File Name', file.name],
+            ['File Size', size],
+            ['PDF Version', version],
+            ['Pages', pageCount],
+            ...Object.entries(meta)
+          ];
+          document.getElementById('metaTable').innerHTML = rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+
+          // Extract readable text (simple heuristic)
+          const textChunks = [];
+          const btMatches = text.matchAll(/BT([\s\S]*?)ET/g);
+          for (const m of btMatches) {
+            const tjMatches = m[1].matchAll(/\(([^\)]{1,200})\)\s*Tj/g);
+            for (const tj of tjMatches) {
+              const cleaned = tj[1].replace(/\\n/g,' ').replace(/\\r/g,' ').replace(/\\\(/g,'(').replace(/\\\)/g,')').replace(/\\\\/g,'\\');
+              if (cleaned.trim().length > 2) textChunks.push(cleaned.trim());
+            }
+            if (textChunks.length > 200) break;
+          }
+          const extracted = textChunks.join(' ').replace(/\s+/g,' ').trim();
+          document.getElementById('extractedText').textContent = extracted || 'Text extraction not available for this PDF (may be scanned or encrypted).';
+          document.getElementById('metaResult').style.display = '';
+        } catch(e) {
+          errEl.textContent = 'Could not parse PDF: ' + e.message;
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>

@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HEX ↔ RGB Converter — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>.preview{width:100%;height:60px;border-radius:8px;border:1.5px solid var(--border);margin-bottom:14px;transition:background .1s}</style>
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
     <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Color</a> / HEX ↔ RGB</div>
@@ -61,5 +65,7 @@
     function fromHsl(){const m=document.getElementById('hsl').value.match(/([\d.]+),\s*([\d.]+)%?,\s*([\d.]+)%?/);if(m){const c=hslToRgb(+m[1],+m[2],+m[3]);setAll(c.r,c.g,c.b);}}
     fromPicker();
   </script>
+  <script src="../../assets/common.js"></script>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
 </body>
 </html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown to Word/HTML — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .doc-preview{background:#fff;color:#111;border:1.5px solid var(--border);border-radius:8px;padding:32px 40px;min-height:300px;font-family:Georgia,serif;font-size:15px;line-height:1.8;max-height:500px;overflow:auto}
+    .doc-preview h1{font-size:24px;margin:0 0 12px}.doc-preview h2{font-size:20px;margin:16px 0 8px}.doc-preview h3{font-size:17px;margin:12px 0 6px}
+    .doc-preview p{margin:0 0 10px}.doc-preview ul,.doc-preview ol{margin:0 0 10px;padding-left:24px}
+    .doc-preview code{background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:13px}
+    .doc-preview pre{background:#f1f5f9;padding:12px;border-radius:6px;font-family:monospace;font-size:13px;overflow:auto;margin:0 0 10px}
+    .doc-preview blockquote{border-left:3px solid #2563eb;margin:0 0 10px;padding:6px 14px;background:#eff6ff;color:#374151}
+    .doc-preview table{border-collapse:collapse;width:100%;margin:0 0 10px}
+    .doc-preview th,.doc-preview td{border:1px solid #d1d5db;padding:6px 12px}
+    .doc-preview th{background:#f9fafb}
+    .doc-preview hr{border:none;border-top:1px solid #e5e7eb;margin:16px 0}
+    .doc-preview strong{font-weight:700}.doc-preview em{font-style:italic}
+    .doc-preview a{color:#2563eb}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page" style="max-width:980px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / Markdown to Word</div>
+    <div class="tool-header">
+      <h1>📝 Markdown to Word / HTML</h1>
+      <p>Convert Markdown to a styled document preview. Copy as HTML or download as a Word-compatible file.</p>
+    </div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="margin:0">Markdown Input</label>
+            <button class="btn btn-ghost" onclick="loadSample()" style="font-size:11px;padding:4px 8px">Load Sample</button>
+          </div>
+          <textarea id="mdInput" rows="20" style="font-family:'SF Mono','Fira Code',monospace;font-size:13px" placeholder="# Heading&#10;## Subheading&#10;&#10;**Bold** and *italic* text.&#10;&#10;- List item 1&#10;- List item 2" oninput="render()"></textarea>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label style="margin:0">Preview</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-ghost" id="copyHTMLBtn" onclick="copyHTML()" style="font-size:11px;padding:4px 8px">Copy HTML</button>
+              <button class="btn btn-primary" onclick="downloadDoc()" style="font-size:11px;padding:4px 8px">Download .doc</button>
+            </div>
+          </div>
+          <div class="doc-preview" id="preview"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+    function mdToHtml(md) {
+      let h = md
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        // Code blocks first
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        // Inline code
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // Headers
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        // HR
+        .replace(/^---$/gm, '<hr>')
+        // Blockquote
+        .replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+        // Bold + italic
+        .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        .replace(/_(.+?)_/g, '<em>$1</em>')
+        // Strikethrough
+        .replace(/~~(.+?)~~/g, '<del>$1</del>')
+        // Links
+        .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
+        // Images
+        .replace(/!\[(.+?)\]\((.+?)\)/g, '<img src="$2" alt="$1" style="max-width:100%">')
+        // Unordered lists
+        .replace(/^[\*\-] (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>')
+        // Ordered lists
+        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+        // Tables (basic)
+        .replace(/^\|(.+)\|$/gm, (m) => {
+          const cols = m.slice(1,-1).split('|').map(c => c.trim());
+          return '<tr>' + cols.map(c => `<td>${c}</td>`).join('') + '</tr>';
+        })
+        // Paragraphs
+        .replace(/\n\n/g, '</p><p>')
+        // Line breaks
+        .replace(/\n/g, '<br>');
+      // Wrap in p if needed
+      if (!h.startsWith('<')) h = '<p>' + h + '</p>';
+      // Table wrapping
+      h = h.replace(/(<tr>[\s\S]+?<\/tr>)+/g, m => `<table>${m}</table>`);
+      return h;
+    }
+
+    function render() {
+      const md = document.getElementById('mdInput').value;
+      document.getElementById('preview').innerHTML = mdToHtml(md);
+    }
+
+    function copyHTML() {
+      copyText(document.getElementById('preview').innerHTML, document.getElementById('copyHTMLBtn'));
+    }
+
+    function downloadDoc() {
+      const preview = document.getElementById('preview').innerHTML;
+      const docContent = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>body{font-family:Georgia,serif;font-size:14pt;line-height:1.8;margin:1in}h1{font-size:20pt}h2{font-size:16pt}h3{font-size:14pt}table{border-collapse:collapse}td,th{border:1px solid #999;padding:4pt 8pt}code,pre{font-family:monospace;background:#f5f5f5;padding:2pt 4pt}</style></head><body>${preview}</body></html>`;
+      const blob = new Blob([docContent], {type:'application/msword'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'document.doc'; a.click();
+    }
+
+    function loadSample() {
+      document.getElementById('mdInput').value = `# Project Report\n\n## Summary\n\nThis is a **sample document** created with *SmallTools* Markdown editor.\n\n## Features\n\n- Real-time preview\n- Export to Word\n- Copy as HTML\n\n## Table Example\n\n| Tool | Category | Status |\n|------|----------|--------|\n| CSV Viewer | Office | Active |\n| PDF Metadata | Office | Active |\n\n## Code Example\n\n\`\`\`\nconst greeting = "Hello World";\nconsole.log(greeting);\n\`\`\`\n\n> This is a blockquote. It highlights important information.\n\n---\n\n*Generated by SmallTools*`;
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>

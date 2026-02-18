@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Markdown Preview — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
     .md-wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;min-height:500px}
     @media(max-width:700px){.md-wrap{grid-template-columns:1fr}}
@@ -33,7 +34,10 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page" style="max-width:1000px">
     <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Dev</a> / Markdown Preview</div>
@@ -104,5 +108,7 @@
     document.getElementById('editor').value=`# Markdown Preview\n\nWrite your **markdown** here and see it rendered *live*.\n\n## Features\n\n- Bold, italic, strikethrough\n- \`inline code\` and fenced code blocks\n- [Links](https://example.com)\n- Blockquotes, lists, headings\n\n> This is a blockquote\n\n\`\`\`js\nconst greet = name => \`Hello, \${name}!\`;\nconsole.log(greet('World'));\n\`\`\``;
     render();
   </script>
+  <script src="../../assets/common.js"></script>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
 </body>
 </html>

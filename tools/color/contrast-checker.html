@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contrast Checker — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
     .preview-box{padding:24px;border-radius:10px;border:1.5px solid var(--border);margin:14px 0;text-align:center;transition:all .1s}
     .preview-box .sample-large{font-size:24px;font-weight:700;margin-bottom:6px}
@@ -19,7 +20,10 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
     <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Color</a> / Contrast Checker</div>
@@ -87,5 +91,7 @@
     function swap(){const fg=document.getElementById('fg').value,bg=document.getElementById('bg').value;document.getElementById('fg').value=bg;document.getElementById('bg').value=fg;update();}
     update();
   </script>
+  <script src="../../assets/common.js"></script>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
 </body>
 </html>

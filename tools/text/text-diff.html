@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text Diff — SmallTools</title>
   <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
   <style>
     .diff-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media(max-width:600px){ .diff-cols { grid-template-columns: 1fr; } }
@@ -12,7 +13,10 @@
 </head>
 <body>
   <header class="site-header">
-    <div class="container"><a href="../../index.html" class="logo">Small<span>Tools</span></a></div>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
   </header>
   <main class="tool-page">
     <div class="breadcrumb"><a href="../../index.html">Home</a> / <a href="../../index.html">Text</a> / Text Diff</div>
@@ -56,5 +60,7 @@
     function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function clearAll() { document.getElementById('textA').value=''; document.getElementById('textB').value=''; document.getElementById('result').innerHTML=''; }
   </script>
+  <script src="../../assets/common.js"></script>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
 </body>
 </html>

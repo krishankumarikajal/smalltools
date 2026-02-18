@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentation Outline Maker — SmallTools</title>
+  <link rel="stylesheet" href="../../assets/style.css">
+  <script>(function(){const t=localStorage.getItem('st-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+  <style>
+    .slide-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;position:relative;transition:border-color .15s}
+    .slide-card:hover{border-color:var(--primary)}
+    .slide-num{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .slide-title-input{width:100%;font-size:15px;font-weight:700;border:none;background:transparent;color:var(--text);padding:0;margin-bottom:6px}
+    .slide-title-input:focus{outline:none}
+    .slide-notes-input{width:100%;font-size:13px;border:none;background:transparent;color:var(--text-2);padding:0;resize:none}
+    .slide-notes-input:focus{outline:none}
+    .slide-actions{position:absolute;top:10px;right:12px;display:flex;gap:6px;opacity:0;transition:opacity .15s}
+    .slide-card:hover .slide-actions{opacity:1}
+    .action-btn{background:none;border:1px solid var(--border);border-radius:5px;padding:3px 7px;cursor:pointer;font-size:11px;color:var(--text-2);transition:all .15s}
+    .action-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .slide-preview{background:#1e3a5f;color:#fff;border-radius:10px;padding:0;aspect-ratio:16/9;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;overflow:hidden;position:relative;font-family:inherit}
+    .preview-slide-num{position:absolute;top:10px;left:14px;font-size:10px;opacity:.5}
+    .preview-title{font-size:clamp(14px,3vw,22px);font-weight:700;padding:0 20px}
+    .preview-notes{font-size:clamp(10px,1.5vw,13px);opacity:.7;margin-top:8px;padding:0 20px}
+    .theme-swatch{width:28px;height:28px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+    .theme-swatch.active{border-color:var(--primary)}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;padding:10px 20px">
+      <a href="../../index.html" class="logo logo-sm">Small<span>Tools</span></a>
+      <button class="theme-toggle" id="themeToggle">🌙</button>
+    </div>
+  </header>
+  <main class="tool-page" style="max-width:1000px">
+    <div class="breadcrumb"><a href="../../index.html">Home</a> / Office / Presentation Outline</div>
+    <div class="tool-header">
+      <h1>📊 Presentation Outline Maker</h1>
+      <p>Plan your presentation slide by slide. Add titles, notes, and preview. Export as text outline or HTML slides.</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+        <input type="text" id="presTitleInput" placeholder="Presentation title..." style="flex:1;min-width:200px;font-size:15px;font-weight:600">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:12px;color:var(--text-2)">Theme:</span>
+          <div class="theme-swatch active" style="background:#1e3a5f" data-theme="#1e3a5f" onclick="setTheme('#1e3a5f')"></div>
+          <div class="theme-swatch" style="background:#1a1a2e" data-theme="#1a1a2e" onclick="setTheme('#1a1a2e')"></div>
+          <div class="theme-swatch" style="background:#134e4a" data-theme="#134e4a" onclick="setTheme('#134e4a')"></div>
+          <div class="theme-swatch" style="background:#7c2d12" data-theme="#7c2d12" onclick="setTheme('#7c2d12')"></div>
+          <div class="theme-swatch" style="background:#4a1d96" data-theme="#4a1d96" onclick="setTheme('#4a1d96')"></div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <label style="margin:0">Slides</label>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary" onclick="addSlide()">+ Add Slide</button>
+              <button class="btn btn-ghost" onclick="loadSample()">Sample</button>
+            </div>
+          </div>
+          <div id="slidesList"></div>
+        </div>
+        <div>
+          <label style="margin-bottom:8px;display:block">Preview</label>
+          <div id="previewGrid" style="display:grid;grid-template-columns:1fr;gap:10px;max-height:500px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <div class="btn-group" style="margin-top:16px">
+        <button class="btn btn-ghost" onclick="exportOutline()">Export as Text Outline</button>
+        <button class="btn btn-ghost" onclick="exportHTML()">Export as HTML Slides</button>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="container">Your data never leaves your browser</div></footer>
+  <script src="../../assets/common.js"></script>
+  <script>
+    let slides = [], slideCount = 0, bgColor = '#1e3a5f';
+
+    function setTheme(color) {
+      bgColor = color;
+      document.querySelectorAll('.theme-swatch').forEach(s => s.classList.toggle('active', s.dataset.theme === color));
+      renderPreviews();
+    }
+
+    function addSlide(title='', notes='') {
+      slideCount++;
+      const id = 'slide-' + slideCount;
+      slides.push({id, title, notes});
+      renderSlidesList();
+      renderPreviews();
+    }
+
+    function removeSlide(id) {
+      slides = slides.filter(s => s.id !== id);
+      renderSlidesList();
+      renderPreviews();
+    }
+
+    function moveSlide(id, dir) {
+      const i = slides.findIndex(s => s.id === id);
+      if (dir === -1 && i === 0) return;
+      if (dir === 1 && i === slides.length-1) return;
+      [slides[i], slides[i+dir]] = [slides[i+dir], slides[i]];
+      renderSlidesList();
+      renderPreviews();
+    }
+
+    function renderSlidesList() {
+      document.getElementById('slidesList').innerHTML = slides.map((s,i) =>
+        `<div class="slide-card" id="${s.id}">
+          <div class="slide-num">Slide ${i+1}</div>
+          <input class="slide-title-input" placeholder="Slide title..." value="${esc(s.title)}" oninput="updateSlide('${s.id}','title',this.value)">
+          <textarea class="slide-notes-input" rows="2" placeholder="Speaker notes..." oninput="updateSlide('${s.id}','notes',this.value)">${esc(s.notes)}</textarea>
+          <div class="slide-actions">
+            <button class="action-btn" onclick="moveSlide('${s.id}',-1)" title="Move up">↑</button>
+            <button class="action-btn" onclick="moveSlide('${s.id}',1)" title="Move down">↓</button>
+            <button class="action-btn" onclick="removeSlide('${s.id}')" title="Delete" style="color:#dc2626">×</button>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    function esc(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function updateSlide(id, field, val) {
+      const s = slides.find(s => s.id === id);
+      if (s) { s[field] = val; renderPreviews(); }
+    }
+
+    function renderPreviews() {
+      document.getElementById('previewGrid').innerHTML = slides.map((s,i) =>
+        `<div class="slide-preview" style="background:${bgColor}">
+          <div class="preview-slide-num">${i+1} / ${slides.length}</div>
+          <div class="preview-title">${s.title || '<span style="opacity:.4">Untitled Slide</span>'}</div>
+          ${s.notes ? `<div class="preview-notes">${s.notes.slice(0,80)}${s.notes.length>80?'…':''}</div>` : ''}
+        </div>`
+      ).join('');
+    }
+
+    function exportOutline() {
+      const title = document.getElementById('presTitleInput').value || 'Presentation';
+      const lines = [`# ${title}\n`];
+      slides.forEach((s,i) => {
+        lines.push(`## Slide ${i+1}: ${s.title || 'Untitled'}`);
+        if (s.notes) lines.push(`Notes: ${s.notes}`);
+        lines.push('');
+      });
+      const btn = document.querySelector('[onclick="exportOutline()"]');
+      const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'outline.txt'; a.click();
+    }
+
+    function exportHTML() {
+      const title = document.getElementById('presTitleInput').value || 'Presentation';
+      const slideHtml = slides.map((s,i) =>
+        `<section class="slide" style="background:${bgColor}">
+          <div class="slide-number">${i+1} / ${slides.length}</div>
+          <h2>${s.title || 'Untitled'}</h2>
+          ${s.notes ? `<p class="notes">${s.notes}</p>` : ''}
+        </section>`
+      ).join('\n');
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#111;font-family:sans-serif}.slide{width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff;page-break-after:always}.slide h2{font-size:2.5vw;padding:0 8%}.slide .notes{font-size:1.5vw;opacity:.7;margin-top:2vh;padding:0 10%}.slide-number{position:absolute;top:20px;right:30px;font-size:14px;opacity:.5}@media print{.slide{height:100vh}}</style></head><body>${slideHtml}</body></html>`;
+      const blob = new Blob([html], {type:'text/html'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'presentation.html'; a.click();
+    }
+
+    function loadSample() {
+      document.getElementById('presTitleInput').value = 'Q3 Business Review';
+      slides = [];
+      const sampleSlides = [
+        ['Q3 Business Review', 'Welcome everyone. Today we review our Q3 performance.'],
+        ['Agenda', '1. Revenue 2. Growth 3. Challenges 4. Q4 Outlook'],
+        ['Revenue Highlights', 'Revenue up 23% YoY. Exceeded targets by 8%.'],
+        ['Key Challenges', 'Supply chain delays. Talent acquisition cost increased.'],
+        ['Q4 Goals', 'Expand to 3 new markets. Launch product v2.0.'],
+        ['Thank You', 'Questions & Discussion'],
+      ];
+      sampleSlides.forEach(([t,n]) => addSlide(t,n));
+    }
+
+    addSlide('Introduction', 'Welcome the audience and introduce the topic.');
+    addSlide('Main Points', 'Cover the key points of your presentation.');
+    addSlide('Conclusion', 'Summarize and call to action.');
+  </script>
+</body>
+</html>
